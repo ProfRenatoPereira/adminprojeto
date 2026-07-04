@@ -4,7 +4,7 @@ function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Inicialização automática ao abrir a aplicação
+// Disparador automático: puxa os dados do SQLite assim que o site abre
 window.addEventListener('DOMContentLoaded', carregarDadosBanco);
 
 async function carregarDadosBanco() {
@@ -93,7 +93,6 @@ function renderizarGraficosNativos(liquido, descontos) {
         pizza.style.background = `conic-gradient(#dc2626 0% ${percDescontos}%, #16a34a ${percDescontos}% 100%)`;
     }
 
-    // Processamento de Pareto Nativo por Categoria
     const custosCargo = {};
     funcionarios.forEach(f => custosCargo[f.cargo] = (custosCargo[f.cargo] || 0) + f.salario);
     const cargos = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
@@ -112,7 +111,6 @@ function renderizarGraficosNativos(liquido, descontos) {
         });
     }
 
-    // Processamento Linear de Elasticidade Individual
     const containerLinear = document.getElementById('nativeLinear');
     if (containerLinear) {
         containerLinear.innerHTML = '';
@@ -187,6 +185,8 @@ function imprimirBalanco() {
 }
 
 
+
+
 function abrirContracheque(dadosString) {
     const f = JSON.parse(decodeURIComponent(dadosString));
     const proventosTotais = f.salario + f.total_he_ganho + f.reflexo_13_ferias + f.insalubridade + f.beneficios + f.salario_familia;
@@ -257,7 +257,7 @@ function abrirFerias(dadosString) {
                 <h2 style="text-align:center;">RECIBO DE AVISO E GOZO DE FÉRIAS</h2>
                 <p style="text-align:center; font-weight:bold;">TERCEIRO ADM ASSOCIADOS</p><hr>
                 <p><strong>Colaborador:</strong> ${f.nome} | <strong>Cargo:</strong> ${f.cargo}</p>
-                <p><strong>Admissão:</strong> ${f.data_admissao.split('-').reverse().join('/')}</p><br>
+                <p><strong>Admissão:</strong> ${f.data_admissao ? f.data_admissao.split('-').reverse().join('/') : '---'}</p><br>
                 <h4>PROVENTOS</h4>
                 <p>(+) Valor de Férias: ${formatarMoeda(baseFerias)}</p>
                 <p>(+) 1/3 Constitucional: ${formatarMoeda(terco)}</p>
@@ -297,3 +297,4 @@ async function emitirRescisao(dadosString) {
         </body></html>
     `);
 }
+
