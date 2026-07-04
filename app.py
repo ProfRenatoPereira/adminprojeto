@@ -9,7 +9,7 @@ DB_FILE = 'folha.db'
 def iniciar_banco():
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
-    # Tabela principal contendo todas as variáveis trabalhistas da folha e rescisão
+    # Criação da tabela de funcionários com todas as novas variáveis didáticas
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS funcionarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,19 +21,17 @@ def iniciar_banco():
             banco_horas REAL, turno TEXT, hora_entrada TEXT, adicional_noturno REAL, regime_he TEXT
         )
     ''')
-    # Nova tabela para o cadastro e inserção de cargos dinâmicos
+    # Tabela dinâmica de cargos customizados
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS cargos_custom (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_cargo TEXT UNIQUE
         )
     ''')
-    # Alimentação inicial didática se o banco de dados estiver zerado
     cursor.execute("SELECT COUNT(*) FROM cargos_custom")
     if cursor.fetchone() == 0:
         cargos_padrao = [("Diretoria",), ("Gerência",), ("Analista",), ("Operacional",)]
         cursor.executemany("INSERT INTO cargos_custom (nome_cargo) VALUES (?)", cargos_padrao)
-        
     conexao.commit()
     conexao.close()
 
@@ -86,7 +84,7 @@ def listar_funcionarios():
     cursor.execute('SELECT * FROM funcionarios')
     linhas = cursor.fetchall()
     conexao.close()
-    return jsonify([dict(linha) for linha in linhas])
+    return jsonify([dict(linha) for line in linhas])
 
 @app.route('/api/funcionarios/<int:id_func>', methods=['DELETE'])
 def demitir_funcionario(id_func):
@@ -96,8 +94,6 @@ def demitir_funcionario(id_func):
     conexao.commit()
     conexao.close()
     return jsonify({'status': 'removido'})
-
-
 @app.route('/api/calcular', methods=['POST'])
 def calcular_e_salvar():
     dados = request.json
@@ -129,10 +125,9 @@ def calcular_e_salvar():
     
     valor_hora = salario_base / horas_comp
     
-    # Didático: Adicional Noturno Técnico automatizado (+20%)
+    # Automatização Pedagógica: Adicional Noturno Técnico (+20% conforme Art. 73 CLT)
     adicional_noturno = 60 * (valor_hora * 0.20) if turno == 'noturno' else 0
     
-    # Cálculo das taxas de Horas Extras e destinação didática (Pagar ou Banco)
     v_he_semana = he_semana * (valor_hora * 1.25)
     v_he_sabado = he_sabado * (valor_hora * 1.50)
     v_he_domingo = he_domingo * (valor_hora * 2.00)
@@ -142,7 +137,7 @@ def calcular_e_salvar():
         total_he_ganho = v_he_semana + v_he_sabado + v_he_domingo
         reflexo_13_ferias = total_he_ganho * (2.0 / 12.0)
     else:
-        # Se for acumulado no Banco de Horas, soma o saldo físico de horas e zera o financeiro da folha atual
+        # Se for regime de banco, acumula as horas extras físicas e zera os ganhos na folha atual
         banco_horas = he_semana + he_sabado + he_domingo
         total_he_ganho = 0
         reflexo_13_ferias = 0
@@ -150,7 +145,6 @@ def calcular_e_salvar():
         
     total_salario_familia = qtd_filhos * 62.04 if (salario_base + adicional_noturno) <= 1819.26 and qtd_filhos > 0 else 0
     
-    # Base de arrecadação do INSS/IRRF
     salario_contribuicao = salario_base + total_he_ganho + insalubridade + reflexo_13_ferias + adicional_noturno
     inss = calcular_inss(salario_contribuicao)
     irrf = calcular_irrf(salario_contribuicao, inss)
