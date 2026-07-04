@@ -70,7 +70,6 @@
             </div>
         </div>
 
-
                 <!-- Coluna 2: Cadastro Geral de Proventos e Jornada de Trabalho -->
         <div class="card">
             <h3>Cadastro & Jornada</h3>
@@ -88,10 +87,18 @@
                 </div>
                 <div class="form-group"><label>Salário Base (R$)</label><input type="number" id="salario" value="3500"></div>
             </div>
-            <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
+                        <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
                 <div class="form-group"><label>Horas Contratuais</label><input type="number" id="horas_comp" value="220"></div>
-                <div class="form-group"><label>Banco de Horas (Saldo h)</label><input type="number" id="banco_horas" value="0"></div>
+                <!-- NOVO COMPONENTE DIDÁTICO SELETOR DE REGIME DE HE -->
+                <div class="form-group">
+                    <label>Regime de Horas Extras</label>
+                    <select id="regime_he">
+                        <option value="pagar" selected>Pagar na Folha (Vencimentos)</option>
+                        <option value="banco">Acumular no Banco de Horas</option>
+                    </select>
+                </div>
             </div>
+
             <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
                 <div class="form-group">
                     <label>Turno do Profissional</label>
