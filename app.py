@@ -9,6 +9,7 @@ DB_FILE = 'folha.db'
 def iniciar_banco():
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
+    # Tabela principal expandida com Banco de Horas e Turnos
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS funcionarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,9 +17,21 @@ def iniciar_banco():
             beneficios REAL, qtd_filhos INTEGER, observacoes TEXT, data_admissao TEXT, mes_ref TEXT,
             v_he_semana REAL, v_he_sabado REAL, v_he_domingo REAL, total_he_ganho REAL,
             reflexo_13_ferias REAL, salario_familia REAL, inss REAL, irrf REAL, vt REAL,
-            adiantamento_valor REAL, total_descontos REAL, liquido REAL
+            adiantamento_valor REAL, total_descontos REAL, liquido REAL,
+            banco_horas REAL, turno TEXT, hora_entrada TEXT, adicional_noturno REAL
         )
     ''')
+    # Tabela exclusiva para inserção de novos cargos customizados
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS cargos_custom (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome_cargo TEXT UNIQUE
+        )
+    ''')
+    cursor.execute("SELECT COUNT(*) FROM cargos_custom")
+    if cursor.fetchone() == 0:
+        cargos_padrao = [("Diretoria",), ("Gerência",), ("Analista",), ("Operacional",)]
+        cursor.executemany("INSERT INTO cargos_custom (nome_cargo) VALUES (?)", cargos_padrao)
     conexao.commit()
     conexao.close()
 
@@ -41,6 +54,26 @@ def calcular_irrf(salario_contribuicao, desconto_inss):
 def index():
     return render_template('index.html')
 
+@app.route('/api/cargos', methods=['GET', 'POST'])
+def gerenciar_cargos():
+    conexao = sqlite3.connect(DB_FILE)
+    cursor = conexao.cursor()
+    if request.method == 'POST':
+        dados = request.json
+        novo_cargo = dados.get('nome_cargo', '').strip()
+        if novo_cargo:
+            try:
+                cursor.execute('INSERT INTO cargos_custom (nome_cargo) VALUES (?)', (novo_cargo,))
+                conexao.commit()
+            except sqlite3.IntegrityError: pass
+        conexao.close()
+        return jsonify({'status': 'sucesso'})
+    else:
+        cursor.execute('SELECT nome_cargo FROM cargos_custom ORDER BY nome_cargo')
+        cargos = [linha[0] for linha in cursor.fetchall()]
+        conexao.close()
+        return jsonify(cargos)
+
 @app.route('/api/funcionarios', methods=['GET'])
 def listar_funcionarios():
     conexao = sqlite3.connect(DB_FILE)
@@ -51,9 +84,21 @@ def listar_funcionarios():
     conexao.close()
     return jsonify([dict(linha) for linha in linhas])
 
+@app.route('/api/funcionarios/<int:id_func>', methods=['DELETE'])
+def demitir_funcionario(id_func):
+    conexao = sqlite3.connect(DB_FILE)
+    cursor = conexao.cursor()
+    cursor.execute('DELETE FROM funcionarios WHERE id = ?', (id_func,))
+    conexao.commit()
+    conexao.close()
+    return jsonify({'status': 'removido'})
+
+
+
 @app.route('/api/calcular', methods=['POST'])
 def calcular_e_salvar():
     dados = request.json
+    id_func = dados.get('id') # Identificador para Modo Salvar/Editar
     salario_base = float(dados.get('salario', 0))
     horas_comp = float(dados.get('horasComp', 220)) or 220
     beneficios = float(dados.get('beneficios', 0))
@@ -64,6 +109,9 @@ def calcular_e_salvar():
     observacoes = dados.get('observacoes', '')
     data_admissao = dados.get('dataAdmissao', '')
     mes_ref = dados.get('mesRef', '')
+    banco_horas = float(dados.get('bancoHoras', 0))
+    turno = dados.get('turno', 'diurno')
+    hora_entrada = dados.get('horaEntrada', '08:00')
     
     he_semana = float(dados.get('heSemana', 0))
     he_sabado = float(dados.get('heSabado', 0))
@@ -76,81 +124,79 @@ def calcular_e_salvar():
     aplicar_adiantamento = dados.get('adiantamento', 'nao') == 'sim'
     descontar_vt = dados.get('vt', 'nao') == 'sim'
     
-    total_salario_familia = 0
-    if salario_base <= 1819.26 and qtd_filhos > 0:
-        total_salario_familia = qtd_filhos * 62.04
-        
     valor_hora = salario_base / horas_comp
-    v_he_semana = he_semana * (valor_hora * 1.25)
-    v_he_sabado = he_sabado * (valor_hora * 1.50)
-    v_he_domingo = he_domingo * (valor_hora * 2.00)
-    total_he_ganho = v_he_semana + v_he_sabado + v_he_domingo
+    
+    # Didático: Adicional Noturno calculado (CLT Art. 73: +20%)
+    adicional_noturno = 0
+    if turno == 'noturno':
+        adicional_noturno = 60 * (valor_hora * 0.20)
+    
+    # Valorização monetária do saldo positivo do Banco de Horas
+    valor_banco = banco_horas * valor_hora if banco_horas > 0 else 0
+    total_he_ganho = (he_semana * (valor_hora * 1.25)) + (he_sabado * (valor_hora * 1.50)) + (he_domingo * (valor_hora * 2.00))
     reflexo_13_ferias = total_he_ganho * (2.0 / 12.0)
     
-    salario_contribuicao = salario_base + total_he_ganho + insalubridade + reflexo_13_ferias
+    total_salario_familia = qtd_filhos * 62.04 if (salario_base + adicional_noturno) <= 1819.26 and qtd_filhos > 0 else 0
+    
+    salario_contribuicao = salario_base + total_he_ganho + insalubridade + reflexo_13_ferias + adicional_noturno + valor_banco
     inss = calcular_inss(salario_contribuicao)
     irrf = calcular_irrf(salario_contribuicao, inss)
     vt = salario_base * 0.06 if descontar_vt else 0
     
-    proventos_previa = salario_base + beneficios + total_he_ganho + insalubridade + reflexo_13_ferias + total_salario_familia
+    proventos_previa = salario_base + beneficios + total_he_ganho + insalubridade + reflexo_13_ferias + total_salario_familia + adicional_noturno + valor_banco
     descontos_previa = inss + irrf + vt + sindicato + plano_saude + plano_odonto + vale_farmacia
     
     valor_adiantamento = (proventos_previa - descontos_previa) * 0.40 if aplicar_adiantamento else 0
     total_descontos = descontos_previa + valor_adiantamento
     liquido_final = proventos_previa - total_descontos
     
-    # Gravação no Banco de Dados SQLite
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
-    cursor.execute('''
-        INSERT INTO funcionarios (nome, cargo, salario, horas_comp, insalubridade, beneficios, qtd_filhos, 
-        observacoes, data_admissao, mes_ref, v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, 
-        reflexo_13_ferias, salario_familia, inss, irrf, vt, adiantamento_valor, total_descontos, liquido)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, 
-          data_admissao, mes_ref, v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, reflexo_13_ferias, 
-          total_salario_familia, inss, irrf, vt, valor_adiantamento, total_descontos, liquido_final))
-    conexao.commit()
-    conexao.close()
     
-    return jsonify({'status': 'sucesso'})
-
-@app.route('/api/funcionarios/<int:id_func>', methods=['DELETE'])
-def demitir_funcionario(id_func):
-    conexao = sqlite3.connect(DB_FILE)
-    cursor = conexao.cursor()
-    cursor.execute('DELETE FROM funcionarios WHERE id = ?', (id_func,))
+    if id_func:
+        cursor.execute('''
+            UPDATE funcionarios SET nome=?, cargo=?, salario=?, horas_comp=?, insalubridade=?, beneficios=?, qtd_filhos=?, 
+            observacoes=?, data_admissao=?, mes_ref=?, v_he_semana=?, v_he_sabado=?, v_he_domingo=?, total_he_ganho=?, 
+            reflexo_13_ferias=?, salario_familia=?, inss=?, irrf=?, vt=?, adiantamento_valor=?, total_descontos=?, liquido=?,
+            banco_horas=?, turno=?, hora_entrada=?, adicional_noturno=? WHERE id=?
+        ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, data_admissao, mes_ref, 
+              (he_semana*(valor_hora*1.25)), (he_sabado*(valor_hora*1.50)), (he_domingo*(valor_hora*2.00)), total_he_ganho, reflexo_13_ferias, 
+              total_salario_familia, inss, irrf, vt, valor_adiantamento, total_descontos, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, id_func))
+    else:
+        cursor.execute('''
+            INSERT INTO funcionarios (nome, cargo, salario, horas_comp, insalubridade, beneficios, qtd_filhos, 
+            observacoes, data_admissao, mes_ref, v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, 
+            reflexo_13_ferias, salario_familia, inss, irrf, vt, adiantamento_valor, total_descontos, liquido,
+            banco_horas, turno, hora_entrada, adicional_noturno)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, data_admissao, mes_ref, 
+              (he_semana*(valor_hora*1.25)), (he_sabado*(valor_hora*1.50)), (he_domingo*(valor_hora*2.00)), total_he_ganho, reflexo_13_ferias, 
+              total_salario_familia, inss, irrf, vt, valor_adiantamento, total_descontos, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno))
     conexao.commit()
     conexao.close()
-    return jsonify({'status': 'removido'})
+    return jsonify({'status': 'sucesso'})
 
 @app.route('/api/rescisao', methods=['POST'])
 def calcular_rescisao():
     dados = request.json
     salario_base = float(dados.get('salario', 0))
-    dt_admissao_str = dados.get('admissao', '')
+    tipo_rescisao = dados.get('tipoRescisao', 'demissao_sem_justa')
     
-    dias_aviso = 30
-    if dt_admissao_str:
-        try:
-            dt_admissao = datetime.strptime(dt_admissao_str, "%Y-%m-%d")
-            hoje = datetime.now()
-            anos = hoje.year - dt_admissao.year - ((hoje.month, hoje.day) < (dt_admissao.month, dt_admissao.day))
-            if anos > 0: dias_aviso += min(anos * 3, 60)
-        except: pass
-
-    valor_aviso = (salario_base / 30) * dias_aviso
     saldo_salario = salario_base * 0.5
     decimo_terceiro = (salario_base / 12) * 6
     ferias_prop = (salario_base / 12) * 6
     terco = ferias_prop / 3
+    
+    valor_aviso = salario_base if tipo_rescisao == 'demissao_sem_justa' else 0
+    desconto_aviso = salario_base if tipo_rescisao == 'pedido_demissao' else 0
+    
     total_prov = saldo_salario + decimo_terceiro + ferias_prop + terco + valor_aviso
-    total_desc = calcular_inss(saldo_salario + decimo_terceiro)
+    total_desc = calcular_inss(saldo_salario + decimo_terceiro) + desconto_aviso
     
     return jsonify({
         'saldoSalario': saldo_salario, 'decimoTerceiroProp': decimo_terceiro, 'feriasProporcionais': ferias_prop,
-        'tercoConstitucional': terco, 'diasAviso': dias_aviso, 'valorAvisoPrevio': valor_aviso,
-        'totalProventos': total_prov, 'inss': total_desc, 'liquido': total_prov - total_desc
+        'tercoConstitucional': terco, 'valorAvisoPrevio': valor_aviso, 'descontoAviso': desconto_aviso,
+        'totalProventos': total_prov, 'inss': calcular_inss(saldo_salario + decimo_terceiro), 'liquido': total_prov - total_desc, 'tipo': tipo_rescisao
     })
 
 iniciar_banco()
