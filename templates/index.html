@@ -6,8 +6,7 @@
     <title>Painel Fiscal - TERCEIRO ADM ASSOCIADOS</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        /* Estilização para Gráficos Nativos, Layout e Abas */
-        .bi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .bi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
         .chart-box { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .chart-box h4 { color: #1e3a8a; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
         .pizza-wrapper { display: flex; align-items: center; justify-content: center; height: 160px; }
@@ -39,7 +38,6 @@
     </header>
 
     <div class="grid-config">
-        <!-- Coluna 1: Controle de Caixa e Estrutura de Cargos -->
         <div class="card">
             <h3>Gestão de Caixa & Cargos</h3>
             <div class="form-group">
@@ -61,35 +59,37 @@
                 <label>Limite Total de Pessoal</label>
                 <input type="number" id="limite_func" value="10" onchange="atualizarDashboard()">
             </div>
-            <div class="form-group" style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+            <div class="form-group" style="margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
                 <label>Criar Novo Cargo Dinâmico</label>
                 <div style="display: flex; gap: 0.3rem;">
                     <input type="text" id="novo_cargo_input" placeholder="Ex: Supervisor">
-                    <button type="button" class="btn-control" style="background:var(--primary)" onclick="adicionarCargoNovo()">+</button>
+                    <button type="button" class="btn-control" style="background:var(--primary); color:white;" onclick="adicionarCargoNovo()">+</button>
                 </div>
             </div>
         </div>
 
-                <!-- Coluna 2: Cadastro Geral de Proventos e Jornada de Trabalho -->
-        <div class="card">
+
+                <div class="card">
             <h3>Cadastro & Jornada</h3>
-            <input type="hidden" id="func_id_edicao" value=""> <!-- Campo oculto para controle do botão salvar -->
+            <input type="hidden" id="func_id_edicao" value="">
             <div class="form-group">
                 <label>Nome Completo</label>
                 <input type="text" id="nome" placeholder="Ex: Renato Silva">
             </div>
+            <!-- CAMPO RESTAURADO: DATA DE CONTRATAÇÃO -->
+            <div class="form-group">
+                <label>Data de Admissão (Férias, 13º e Rescisão)</label>
+                <input type="date" id="data_admissao" value="2025-01-15">
+            </div>
             <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
                 <div class="form-group">
                     <label>Cargo / Função</label>
-                    <select id="cargo">
-                        <!-- Será preenchido dinamicamente via API do SQLite -->
-                    </select>
+                    <select id="cargo"></select>
                 </div>
                 <div class="form-group"><label>Salário Base (R$)</label><input type="number" id="salario" value="3500"></div>
             </div>
-                        <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
+            <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
                 <div class="form-group"><label>Horas Contratuais</label><input type="number" id="horas_comp" value="220"></div>
-                <!-- NOVO COMPONENTE DIDÁTICO SELETOR DE REGIME DE HE -->
                 <div class="form-group">
                     <label>Regime de Horas Extras</label>
                     <select id="regime_he">
@@ -98,7 +98,6 @@
                     </select>
                 </div>
             </div>
-
             <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
                 <div class="form-group">
                     <label>Turno do Profissional</label>
@@ -124,9 +123,10 @@
             </div>
         </div>
 
-                <!-- Coluna 3: Descontos e Botões Operacionais Didáticos -->
-        <div class="card">
-            <h3>Retenções & Operação</h3>
+
+
+                <div class="card">
+            <h3>Retenções & Promoção</h3>
             <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
                 <div class="form-group"><label>Plano de Saúde (R$)</label><input type="number" id="plano_saude" value="0"></div>
                 <div class="form-group"><label>Plano Odonto (R$)</label><input type="number" id="plano_odonto" value="0"></div>
@@ -146,17 +146,22 @@
                 </div>
             </div>
             
-            <!-- Botões Estruturados para Dinâmica de Aulas -->
+            <!-- CAMPO DIDÁTICO: SIMULAÇÃO DE PROMOÇÃO / COMPORTAMENTO LINEAR -->
+            <div class="form-group" style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                <label style="color:#0284c7; font-weight: bold;">Simular Promoção / Aumento Salarial (R$)</label>
+                <input type="number" id="novo_aumento_salarial" value="0" placeholder="Ex: Novo Salário Bruto">
+            </div>
+
             <button class="btn-add" id="btn_principal_folha" onclick="adicionarFuncionario()">Contratar Profissional</button>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
-                <button type="button" class="btn-control" style="background:#475569; color:white;" onclick="salvarAlteraçõesFuncionario()">💾 Salvar Dados</button>
+                <button type="button" class="btn-control" style="background:#475569; color:white; border:none;" onclick="salvarAlteraçõesFuncionario()">💾 Salvar Dados</button>
                 <button type="button" class="btn-control" style="background:#cbd5e1; color:#0f172a; border:1px solid #94a3b8;" onclick="limparCamposTela()">🧹 Limpar Tela</button>
             </div>
         </div>
     </div>
 
-    <!-- Indicadores Rápidos -->
-    <div class="dashboard">
+
+        <div class="dashboard">
         <div class="metric"><p>Funcionários Ativos</p><h2 id="dash_total_func">0 / 10</h2></div>
         <div class="metric"><p>Custo Bruto Total</p><h2 id="dash_custo_bruto">R$ 0,00</h2></div>
         <div class="metric"><p>Impostos Retidos</p><h2 id="dash_total_descontos" style="color: #dc2626">R$ 0,00</h2></div>
@@ -164,11 +169,11 @@
         <div class="metric" id="card_balanco"><p>Margem Disponível</p><h2 id="dash_saldo_empresa">R$ 0,00</h2></div>
     </div>
 
-    <!-- Seção de Analytics Visual Nativo -->
     <div class="bi-container">
         <div class="chart-box"><h4>📊 Divisão Macroeconômica (Pizza)</h4><div class="pizza-wrapper"><div id="nativePizza" class="pizza-native"></div></div></div>
         <div class="chart-box"><h4>📊 Análise de Pareto por Cargo</h4><div id="nativePareto" class="bar-container"></div></div>
-        <div class="chart-box"><h4>📊 Elasticidade de Custo Individual</h4><div id="nativeLinear" class="linear-wrapper"></div></div>
+        <!-- GRÁFICO LINEAR ADAPTADO DIDATICAMENTE PARA ELASTICIDADE DE AUMENTO SALARIAL -->
+        <div class="chart-box"><h4>📊 Elasticidade de Salário Bruto Real (Aumentos)</h4><div id="nativeLinear" class="linear-wrapper"></div></div>
     </div>
 
     <div class="section-title">
