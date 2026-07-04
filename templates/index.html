@@ -1,30 +1,23 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-    
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Fiscal - TERCEIRO ADM ASSOCIADOS</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        /* Estilização instantânea para Gráficos Nativos em puro CSS */
+        /* Estilização para Gráficos Nativos */
         .bi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
         .chart-box { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .chart-box h4 { color: #1e3a8a; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
-        
-        /* Gráfico de Pizza Nativo */
         .pizza-wrapper { display: flex; align-items: center; justify-content: center; height: 160px; }
         .pizza-native { width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(#16a34a 0% 100%); transition: background 0.3s; }
         .chart-legenda { display: flex; justify-content: center; gap: 1rem; font-size: 0.8rem; margin-top: 1rem; }
         .leg-item { display: flex; align-items: center; gap: 0.3rem; }
-        
-        /* Gráfico de Barras / Pareto Nativo */
         .bar-container { display: flex; align-items: flex-end; justify-content: space-around; height: 150px; border-bottom: 2px solid #94a3b8; padding-top: 10px; gap: 5px; }
         .bar-wrapper { display: flex; flex-direction: column; align-items: center; flex-grow: 1; }
         .bar-native { width: 100%; max-width: 45px; background: #1e3a8a; border-radius: 4px 4px 0 0; transition: height 0.5s; text-align: center; color: white; font-size: 0.75rem; font-weight: bold; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px; height: 0%; }
         .bar-label { font-size: 0.7rem; text-align: center; margin-top: 0.5rem; color: #475569; font-weight: 600; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        /* Gráfico Linear / Elasticidade Nativo */
         .linear-wrapper { display: flex; flex-direction: column; gap: 0.6rem; justify-content: center; min-height: 150px; }
         .linear-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; }
         .linear-name { width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; color: #334155; }
@@ -34,21 +27,39 @@
     </style>
 </head>
 <body>
-    <!-- [Estrutura HTML completa com campos de entrada, indicadores e contêineres de gráfico...] -->
-    <div class="bi-container">
-        <div class="chart-box">
-            <h4>📊 Divisão Macroeconômica (Pizza)</h4>
-            <div class="pizza-wrapper"><div id="nativePizza" class="pizza-native"></div></div>
+<div class="container">
+    <header>
+        <div><h1>TERCEIRO ADM ASSOCIADOS</h1><p>Gerenciador Operacional de Pessoal</p></div>
+        <div class="actions-header"><button class="btn-print" onclick="imprimirBalanco()">🖨️ Imprimir Balanço</button></div>
+    </header>
+    <div class="grid-config">
+        <!-- Campos de Entrada (Finanças, Cadastro, Descontos) -->
+        <div class="card">
+            <h3>Gestão de Caixa</h3>
+            <div class="form-group"><label>Mês</label><select id="mes_referencia"><option value="Julho" selected>Julho</option></select></div>
+            <div class="form-group"><label>Receita (R$)</label><input type="number" id="receita_empresa" value="150000" onchange="atualizarDashboard()"></div>
         </div>
-        <div class="chart-box">
-            <h4>📊 Análise de Pareto por Cargo</h4>
-            <div id="nativePareto" class="bar-container"></div>
+        <div class="card">
+            <h3>Cadastro & Proventos</h3>
+            <div class="form-group"><label>Nome</label><input type="text" id="nome"></div>
+            <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem;"><div class="form-group"><label>Salário (R$)</label><input type="number" id="salario" value="3500"></div><div class="form-group"><label>HE 50% (h)</label><input type="number" id="he_sabado" value="0"></div></div>
+            <div class="form-group"><label>Benefícios (R$)</label><input type="number" id="beneficios" value="500"></div>
         </div>
-        <div class="chart-box">
-            <h4>📊 Elasticidade de Custo Individual</h4>
-            <div id="nativeLinear" class="linear-wrapper"></div>
+        <div class="card">
+            <h3>Retenções</h3>
+            <div class="form-group"><label>Saúde (R$)</label><input type="number" id="plano_saude" value="0"></div>
+            <button class="btn-add" onclick="adicionarFuncionario()">Adicionar</button>
         </div>
     </div>
-    <!-- ... -->
+    <!-- Indicadores e Gráficos -->
+    <div class="dashboard"><div class="metric"><p>Custo Bruto</p><h2 id="dash_custo_bruto">R$ 0,00</h2></div><div class="metric"><p>Líquido</p><h2 id="dash_folha_liquida">R$ 0,00</h2></div></div>
+    <div class="bi-container">
+        <div class="chart-box"><h4>📊 Pizza</h4><div class="pizza-wrapper"><div id="nativePizza" class="pizza-native"></div></div></div>
+        <div class="chart-box"><h4>📊 Pareto</h4><div id="nativePareto" class="bar-container"></div></div>
+        <div class="chart-box"><h4>📊 Elasticidade</h4><div id="nativeLinear" class="linear-wrapper"></div></div>
+    </div>
+    <table><thead><tr><th>Nome</th><th>Cargo</th><th>Líquido</th><th>Ações</th></tr></thead><tbody id="tabela_corpo"></tbody></table>
+</div>
+<script src="/static/script.js"></script>
 </body>
 </html>
