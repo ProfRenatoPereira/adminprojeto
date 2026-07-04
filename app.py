@@ -12,7 +12,7 @@ def iniciar_banco():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS funcionarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT EXISTS, cargo TEXT, salario REAL, horas_comp REAL, insalubridade REAL,
+            nome TEXT NOT NULL, cargo TEXT, salario REAL, horas_comp REAL, insalubridade REAL,
             beneficios REAL, qtd_filhos INTEGER, observacoes TEXT, data_admissao TEXT, mes_ref TEXT,
             v_he_semana REAL, v_he_sabado REAL, v_he_domingo REAL, total_he_ganho REAL,
             reflexo_13_ferias REAL, salario_familia REAL, inss REAL, irrf REAL, vt REAL,
