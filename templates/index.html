@@ -6,30 +6,48 @@
     <title>Painel Fiscal - TERCEIRO ADM ASSOCIADOS</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        /* Estilização nativa instantânea para os gráficos em puro CSS */
-        .bi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        /* Estilização instantânea para Gráficos Nativos em puro CSS */
+        .bi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
         .chart-box { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .chart-box h4 { color: #1e3a8a; margin-bottom: 1rem; font-size: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
+        .chart-box h4 { color: #1e3a8a; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
         
         /* Gráfico de Pizza Nativo */
-        .pizza-wrapper { display: flex; align-items: center; justify-content: center; height: 180px; }
-        .pizza-native { width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(#16a34a 0% 100%); transition: background 0.3s; }
+        .pizza-wrapper { display: flex; align-items: center; justify-content: center; height: 160px; }
+        .pizza-native { width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(#16a34a 0% 100%); transition: background 0.3s; }
         .chart-legenda { display: flex; justify-content: center; gap: 1rem; font-size: 0.8rem; margin-top: 1rem; }
         .leg-item { display: flex; align-items: center; gap: 0.3rem; }
         
         /* Gráfico de Barras / Pareto Nativo */
-        .bar-container { display: flex; align-items: flex-end; justify-content: space-around; height: 150px; border-bottom: 2px solid #94a3b8; padding-top: 10px; }
-        .bar-native { width: 35px; background: #1e3a8a; border-radius: 4px 4px 0 0; transition: height 0.5s; text-align: center; color: white; font-size: 0.75rem; font-weight: bold; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px; }
-        .bar-label { font-size: 0.7rem; text-align: center; margin-top: 0.5rem; color: #475569; font-weight: 600; }
+        .bar-container { display: flex; align-items: flex-end; justify-content: space-around; height: 150px; border-bottom: 2px solid #94a3b8; padding-top: 10px; gap: 5px; }
+        .bar-wrapper { display: flex; flex-direction: column; align-items: center; flex-grow: 1; }
+        .bar-native { width: 100%; max-width: 45px; background: #1e3a8a; border-radius: 4px 4px 0 0; transition: height 0.5s; text-align: center; color: white; font-size: 0.75rem; font-weight: bold; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px; height: 0%; }
+        .bar-label { font-size: 0.7rem; text-align: center; margin-top: 0.5rem; color: #475569; font-weight: 600; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Gráfico Linear Nativo */
-        .linear-wrapper { display: flex; flex-direction: column; gap: 0.5rem; justify-content: center; height: 150px; }
+        /* Gráfico Linear / Elasticidade Nativo */
+        .linear-wrapper { display: flex; flex-direction: column; gap: 0.6rem; justify-content: center; min-height: 150px; }
         .linear-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; }
-        .linear-bar-bg { background: #e2e8f0; border-radius: 4px; flex-grow: 1; height: 12px; overflow: hidden; }
+        .linear-name { width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; color: #334155; }
+        .linear-bar-bg { background: #e2e8f0; border-radius: 4px; flex-grow: 1; height: 14px; overflow: hidden; position: relative; }
         .linear-bar-fill { background: #0284c7; height: 100%; width: 0%; transition: width 0.5s; }
+        .linear-value { width: 75px; text-align: right; font-weight: bold; color: #0284c7; }
     </style>
 </head>
 <body>
-    <!-- [Conteúdo HTML Simplificado com estrutura dos gráficos nativos] -->
+    <!-- [Estrutura HTML completa com campos de entrada, indicadores e contêineres de gráfico...] -->
+    <div class="bi-container">
+        <div class="chart-box">
+            <h4>📊 Divisão Macroeconômica (Pizza)</h4>
+            <div class="pizza-wrapper"><div id="nativePizza" class="pizza-native"></div></div>
+        </div>
+        <div class="chart-box">
+            <h4>📊 Análise de Pareto por Cargo</h4>
+            <div id="nativePareto" class="bar-container"></div>
+        </div>
+        <div class="chart-box">
+            <h4>📊 Elasticidade de Custo Individual</h4>
+            <div id="nativeLinear" class="linear-wrapper"></div>
+        </div>
+    </div>
+    <!-- ... -->
 </body>
 </html>
