@@ -4,7 +4,8 @@ import sqlite3
 import os
 
 app = Flask(__name__)
-DB_FILE = 'folha.db'
+DB_FILE = 'folha_v2.db' # Nome alterado para resetar a estrutura do banco
+
 
 def iniciar_banco():
     conexao = sqlite3.connect(DB_FILE)
