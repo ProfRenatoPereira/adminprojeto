@@ -4,7 +4,7 @@ function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Disparador automático ao inicializar
+// Disparador de inicialização automática ao carregar o sistema
 window.addEventListener('DOMContentLoaded', () => {
     carregarCargosBanco();
     carregarDadosBanco();
@@ -51,7 +51,6 @@ async function carregarDadosBanco() {
 
 
 
-
 function limparCamposTela() {
     document.getElementById('func_id_edicao').value = '';
     document.getElementById('nome').value = '';
@@ -91,7 +90,7 @@ function carregarFuncionarioParaEdicao(dadosString) {
     document.getElementById('data_admissao').value = f.data_admissao;
     document.getElementById('turno').value = f.turno || 'diurno';
     document.getElementById('hora_entrada').value = f.hora_entrada || '08:00';
-    document.getElementById('novo_aumento_salarial').value = '0'; // Zera para inserção de novo aumento
+    document.getElementById('novo_aumento_salarial').value = '0';
     
     const btn = document.getElementById('btn_principal_folha');
     if (btn) btn.innerText = 'Modo Edição Ativo';
@@ -103,9 +102,8 @@ async function salvarAlteraçõesFuncionario() {
     const id = document.getElementById('func_id_edicao').value;
     if (!id) { alert('Selecione um funcionário clicando no nome dele na lista abaixo primeiro.'); return; }
     
-    // Se houver um valor digitado em promoção, ele passa a ser o salário oficial do funcionário
     const valorPromocao = parseFloat(document.getElementById('novo_aumento_salarial').value) || 0;
-    if(valorPromocao > 0) {
+    if (valorPromocao > 0) {
         document.getElementById('salario').value = valorPromocao;
     }
 
@@ -113,8 +111,6 @@ async function salvarAlteraçõesFuncionario() {
     alert('Dados salvos e atualizados no SQLite com sucesso!');
     limparCamposTela();
 }
-
-
 
 
 
@@ -160,7 +156,7 @@ async function adicionarFuncionarioComId(idExistente) {
         })
     });
 
-    if(!idExistente) {
+    if (!idExistente) {
         document.getElementById('nome').value = '';
         document.getElementById('observacoes').value = '';
     }
@@ -204,8 +200,6 @@ function atualizarDashboard() {
 
 
 
-
-
 function renderizarGraficosNativos(liquido, descontos) {
     const total = liquido + descontos;
     const pizza = document.getElementById('nativePizza');
@@ -232,7 +226,6 @@ function renderizarGraficosNativos(liquido, descontos) {
         });
     }
 
-    // GRÁFICO LINEAR REAJUSTADO PEDAGOGICAMENTE PARA COMPORTAMENTO DE PROMOÇÕES E SALÁRIOS BRUTOS
     const containerLinear = document.getElementById('nativeLinear');
     if (containerLinear) {
         containerLinear.innerHTML = '';
@@ -249,5 +242,106 @@ function renderizarGraficosNativos(liquido, descontos) {
     }
 }
 
-// Lembre-se de manter as funções de impressão (abrirContracheque, abrirFerias, selecionarTipoRescisao, emitirRescisaoExecutiva e abrirDecimoTerceiroGeral) no final do arquivo conforme os blocos corrigidos da resposta anterior.
+function renderizarTabela() {
+    const corpo = document.getElementById('tabela_corpo');
+    corpo.innerHTML = '';
 
+    funcionarios.forEach(f => {
+        const dados = encodeURIComponent(JSON.stringify(f));
+        const dataFormatada = f.data_admissao ? f.data_admissao.split('-').reverse().join('/') : '---';
+        const turnoRotulo = f.turno === 'noturno' ? '🌙 Noturno' : '☀️ Diurno';
+        const jornadaTexto = f.banco_horas > 0 ? `${f.horas_comp}h (+${f.banco_horas}h BH)` : `${f.horas_comp}h`;
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><a onclick="carregarFuncionarioParaEdicao('${dados}')" style="cursor:pointer; color:var(--primary); text-decoration:underline;"><strong>${f.nome}</strong></a><br><small style="color:#64748b">Admissão: ${dataFormatada}</small></td>
+            <td>${f.cargo}</td>
+            <td><small>Jornada: ${jornadaTexto}</small><br><strong>${turnoRotulo}</strong></td>
+            <td style="color:#16a34a"><strong>${formatarMoeda(f.liquido)}</strong></td>
+            <td class="actions-cell">
+                <a onclick="abrirContracheque('${dados}')" class="btn-link">📄 Mensal</a>
+                <a onclick="abrirFerias('${dados}')" class="btn-link" style="color:#16a34a">🌴 Férias</a>
+                <button class="btn-delete" style="background:#0284c7; color:white; border:none; padding:4px 8px; margin-right:5px;" onclick="selecionarTipoRescisao('${dados}')">⚠️ Rescisão</button>
+                <button class="btn-delete" onclick="deletarFuncionario(${f.id})">Demitir</button>
+            </td>
+        `;
+        corpo.appendChild(tr);
+    });
+}
+
+
+
+function imprimirBalanco() {
+    const receita = parseFloat(document.getElementById('receita_empresa').value) || 0;
+    let totalBruto = 0; let totalBeneficios = 0;
+    funcionarios.forEach(f => { 
+        totalBruto += (f.salario + f.total_he_ganho + f.insalubridade + f.reflexo_13_ferias + (f.adicional_noturno || 0)); 
+        totalBeneficios += f.beneficios; 
+    });
+    let custoTotal = totalBruto + totalBeneficios;
+    let saldo = receita - custoTotal;
+
+    const area = document.getElementById('print-area');
+    area.innerHTML = "<div style='padding:40px; font-family:sans-serif;'><h2>TERCEIRO ADM ASSOCIADOS - BALANÇO</h2><hr><br><p><strong>Receita Operacional Bruta:</strong> " + formatarMoeda(receita) + "</p><p><strong>Custo de Salários/Reflexos:</strong> " + formatarMoeda(totalBruto) + "</p><h3>Saldo Final de Caixa: " + formatarMoeda(saldo) + "</h3></div>";
+    
+    document.body.classList.add('imprimindo-balanco');
+    window.print();
+    setTimeout(() => { document.body.classList.remove('imprimindo-balanco'); }, 1000);
+}
+
+function abrirContracheque(dadosString) {
+    const f = JSON.parse(decodeURIComponent(dadosString));
+    const valorHora = f.salario / f.horas_comp;
+    const valorBanco = f.banco_horas > 0 ? f.banco_horas * valorHora : 0;
+    const proventosTotais = f.salario + f.total_he_ganho + f.reflexo_13_ferias + f.insalubridade + f.beneficios + f.salario_familia + (f.adicional_noturno || 0) + valorBanco;
+    const descontosTotais = f.total_descontos;
+    
+    const janela = window.open('', '_blank', 'width=750,height=850');
+    janela.document.write("<html><body style='font-family:monospace; padding:25px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>RECIBO DE PAGAMENTO MENSAL</h2><p><strong>TERCEIRO ADM ASSOCIADOS</strong></p><hr><p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Salário Base:</strong> " + formatarMoeda(f.salario) + "</p><p><strong>Adicional Noturno (CLT):</strong> " + formatarMoeda(f.adicional_noturno || 0) + "</p><p><strong>Total Proventos:</strong> " + formatarMoeda(proventosTotais) + "</p><p><strong>Total Descontos:</strong> " + formatarMoeda(descontosTotais) + "</p><h3>VALOR LÍQUIDO A RECEBER: " + formatarMoeda(f.liquido) + "</h3></div></body></html>");
+    janela.document.close();
+}
+
+function abrirFerias(dadosString) {
+    const f = JSON.parse(decodeURIComponent(dadosString));
+    const baseFerias = f.salario + f.insalubridade + (f.adicional_noturno || 0);
+    const terco = baseFerias / 3;
+    const proventos = baseFerias + terco;
+    const inssFerias = proventos * 0.09; 
+
+    const janela = window.open('', '_blank', 'width=750,height=700');
+    janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:600px; margin:0 auto;'><h2>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><p><strong>TERCEIRO ADM ASSOCIADOS</strong></p><hr><p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Férias + 1/3 Constitucional:</strong> " + formatarMoeda(proventos) + "</p><h3>LÍQUIDO DAS FÉRIAS: " + formatarMoeda(proventos - inssFerias) + "</h3></div></body></html>");
+    janela.document.close();
+}
+
+function selecionarTipoRescisao(dadosString) {
+    const f = JSON.parse(decodeURIComponent(dadosString));
+    const tipo = confirm("Clique em [OK] para calcular DEMISSÃO SEM JUSTA CAUSA.\nClique em [CANCELAR] para simular PEDIDO DE DEMISSÃO do trabalhador.");
+    const rotuloTipo = tipo ? 'demissao_sem_justa' : 'pedido_demissao';
+    emitirRescisaoExecutiva(f, rotuloTipo);
+}
+
+async function emitirRescisaoExecutiva(f, tipo) {
+    const resposta = await fetch('/api/rescisao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo })
+    });
+    const r = await resposta.json();
+
+    const janela = window.open('', '_blank', 'width=750,height=850');
+    janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>TERMO DE QUITAÇÃO DE RESCISÃO CLT</h2><p><strong>TERCEIRO ADM ASSOCIADOS</strong></p><hr><p><strong>Saldo de Salário:</strong> " + formatarMoeda(r.saldoSalario) + "</p><p><strong>Aviso Prévio Indenizado:</strong> " + formatarMoeda(r.valorAvisoPrevio) + "</p><h3>SALDO LÍQUIDO RESCISÓRIO: " + formatarMoeda(r.liquido) + "</h3></div></body></html>");
+    janela.document.close();
+}
+
+function abrirDecimoTerceiroGeral() {
+    if (funcionarios.length === 0) { alert("Nenhum funcionário ativo para calcular o 13º."); return; }
+    let totalBruto = 0; let totalLiquido = 0;
+    funcionarios.forEach(f => {
+        totalBruto += f.salario;
+        totalLiquido += (f.salario * 0.91);
+    });
+
+    const janela = window.open('', '_blank', 'width=750,height=700');
+    janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>FOLHA DE PAGAMENTO - 13º SALÁRIO INTEGRAL</h2><p><strong>TERCEIRO ADM ASSOCIADOS</strong></p><hr><h3>TOTAL LÍQUIDO DA GRATIFICAÇÃO: " + formatarMoeda(totalLiquido) + "</h3></div></body></html>");
+    janela.document.close();
+}
