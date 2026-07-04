@@ -6,7 +6,7 @@
     <title>Painel Fiscal - TERCEIRO ADM ASSOCIADOS</title>
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        .bi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .bi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
         .chart-box { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .chart-box h4 { color: #1e3a8a; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
         .pizza-wrapper { display: flex; align-items: center; justify-content: center; height: 160px; }
@@ -67,18 +67,15 @@
                 </div>
             </div>
         </div>
-
-
-                <div class="card">
+        <div class="card">
             <h3>Cadastro & Jornada</h3>
             <input type="hidden" id="func_id_edicao" value="">
             <div class="form-group">
                 <label>Nome Completo</label>
                 <input type="text" id="nome" placeholder="Ex: Renato Silva">
             </div>
-            <!-- CAMPO RESTAURADO: DATA DE CONTRATAÇÃO -->
             <div class="form-group">
-                <label>Data de Admissão (Férias, 13º e Rescisão)</label>
+                <label>Data de Admissão (CLT)</label>
                 <input type="date" id="data_admissao" value="2025-01-15">
             </div>
             <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
@@ -118,14 +115,11 @@
                 <div class="form-group"><label>Filhos &lt; 14 anos</label><input type="number" id="qtd_filhos" value="0" min="0"></div>
             </div>
             <div class="form-group">
-                <label>Observações do Holerite (Texto Livre)</label>
-                <input type="text" id="observacoes" placeholder="Ex: Pagamento bônus ou avisos.">
+                <label>Observações do Holerite</label>
+                <input type="text" id="observacoes" placeholder="Ex: Bônus de metas ou avisos.">
             </div>
         </div>
-
-
-
-                <div class="card">
+        <div class="card">
             <h3>Retenções & Promoção</h3>
             <div class="grid-config" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0;">
                 <div class="form-group"><label>Plano de Saúde (R$)</label><input type="number" id="plano_saude" value="0"></div>
@@ -145,8 +139,6 @@
                     <select id="vt_desconto"><option value="sim">Sim</option><option value="nao" selected>Não</option></select>
                 </div>
             </div>
-            
-            <!-- CAMPO DIDÁTICO: SIMULAÇÃO DE PROMOÇÃO / COMPORTAMENTO LINEAR -->
             <div class="form-group" style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
                 <label style="color:#0284c7; font-weight: bold;">Simular Promoção / Aumento Salarial (R$)</label>
                 <input type="number" id="novo_aumento_salarial" value="0" placeholder="Ex: Novo Salário Bruto">
@@ -160,20 +152,18 @@
         </div>
     </div>
 
-
-        <div class="dashboard">
+    <div class="dashboard">
         <div class="metric"><p>Funcionários Ativos</p><h2 id="dash_total_func">0 / 10</h2></div>
         <div class="metric"><p>Custo Bruto Total</p><h2 id="dash_custo_bruto">R$ 0,00</h2></div>
         <div class="metric"><p>Impostos Retidos</p><h2 id="dash_total_descontos" style="color: #dc2626">R$ 0,00</h2></div>
-        <div class="metric"><p>Líquido Bancário</p><h2 id="dash_folha_liquida" style="color: #16a34a">R$ 0,00</h2></div>
+        <div class="metric"><p>Líquido Bancário</p><h2 id="dash_folha_liquida">R$ 0,00</h2></div>
         <div class="metric" id="card_balanco"><p>Margem Disponível</p><h2 id="dash_saldo_empresa">R$ 0,00</h2></div>
     </div>
 
     <div class="bi-container">
         <div class="chart-box"><h4>📊 Divisão Macroeconômica (Pizza)</h4><div class="pizza-wrapper"><div id="nativePizza" class="pizza-native"></div></div></div>
         <div class="chart-box"><h4>📊 Análise de Pareto por Cargo</h4><div id="nativePareto" class="bar-container"></div></div>
-        <!-- GRÁFICO LINEAR ADAPTADO DIDATICAMENTE PARA ELASTICIDADE DE AUMENTO SALARIAL -->
-        <div class="chart-box"><h4>📊 Elasticidade de Salário Bruto Real (Aumentos)</h4><div id="nativeLinear" class="linear-wrapper"></div></div>
+        <div class="chart-box"><h4>📊 Elasticidade de Salário Bruto (Aumentos)</h4><div id="nativeLinear" class="linear-wrapper"></div></div>
     </div>
 
     <div class="section-title">
@@ -194,7 +184,6 @@
 </div>
 
 <div id="print-area"></div>
-
 <script src="/static/script.js"></script>
 </body>
 </html>
