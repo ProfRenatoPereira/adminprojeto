@@ -1,8 +1,21 @@
 let funcionarios = [];
+let charts = {};
 
 function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
+
+// Escuta a abertura da página para ler os dados fixos do SQLite
+window.addEventListener('DOMContentLoaded', carregarDadosBanco);
+
+async function carregarDadosBanco() {
+    const resposta = await fetch('/api/funcionarios');
+    funcionarios = await resposta.json();
+    renderizarTabela();
+    atualizarDashboard();
+}
+
+
 
 async function adicionarFuncionario() {
     const nome = document.getElementById('nome').value.trim();
@@ -26,38 +39,31 @@ async function adicionarFuncionario() {
     
     const adiantamento = document.getElementById('adiantamento').value;
     const vt = document.getElementById('vt_desconto').value;
-    const limiteMax = parseInt(document.getElementById('limite_func').value) || 10;
     const mesRef = document.getElementById('mes_referencia').value;
 
     if (!nome) { alert('Insira o nome do profissional.'); return; }
 
-    const resposta = await fetch('/api/calcular', {
+    await fetch('/api/calcular', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-            salario, horasComp, insalubridade, beneficios, heSemana, heSabado, heDomingo,
-            planoSaude, planoOdonto, valeFarmacia, sindicato, adiantamento, vt, qtdFilhos
+            nome, cargo, salario, horasComp, insalubridade, beneficios, heSemana, heSabado, heDomingo,
+            planoSaude, planoOdonto, valeFarmacia, sindicato, adiantamento, vt, qtdFilhos, mesRef
         })
-    });
-    
-    const calculos = await resposta.json();
-
-    funcionarios.push({
-        id: Date.now(), nome, cargo, salario, horasComp, insalubridade, beneficios, qtdFilhos, observacoes, dataAdmissao,
-        heSemana, heSabado, heDomingo, planoSaude, planoOdonto, valeFarmacia, sindicato, mesRef, ...calculos
     });
 
     document.getElementById('nome').value = '';
     document.getElementById('observacoes').value = '';
-    renderizarTabela();
-    atualizarDashboard();
+    carregarDadosBanco();
 }
 
-function deletarFuncionario(id) {
-    funcionarios = funcionarios.filter(f => f.id !== id);
-    renderizarTabela();
-    atualizarDashboard();
+async function deletarFuncionario(id) {
+    await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' });
+    carregarDadosBanco();
 }
+
+
+
 
 function atualizarDashboard() {
     const receita = parseFloat(document.getElementById('receita_empresa').value) || 0;
@@ -65,12 +71,12 @@ function atualizarDashboard() {
 
     let totalBruto = 0; let totalDescontos = 0; let totalLiquido = 0;
     funcionarios.forEach(f => {
-        totalBruto += f.salario + f.totalHeGanho + f.insalubridade + f.reflexo13Ferias;
-        totalDescontos += f.totalDescontos;
+        totalBruto += f.salario + f.total_he_ganho + f.insalubridade + f.reflexo_13_ferias;
+        totalDescontos += f.total_descontos;
         totalLiquido += f.liquido;
     });
 
-    let custoTotal = funcionarios.reduce((acc, f) => acc + f.salario + f.beneficios + f.totalHeGanho + f.insalubridade + f.reflexo13Ferias, 0);
+    let custoTotal = funcionarios.reduce((acc, f) => acc + f.salario + f.beneficios + f.total_he_ganho + f.insalubridade + f.reflexo_13_ferias, 0);
     let saldoFinal = receita - custoTotal;
 
     document.getElementById('dash_total_func').innerText = `${funcionarios.length} / ${limiteMax}`;
@@ -80,7 +86,52 @@ function atualizarDashboard() {
     document.getElementById('dash_saldo_empresa').innerText = formatarMoeda(saldoFinal);
 
     document.getElementById('card_balanco').className = saldoFinal < 0 ? 'metric negative' : 'metric';
+    
+    renderizarGraficos(totalLiquido, totalDescontos);
 }
+
+function renderizarGraficos(liquido, descontos) {
+    if(charts.pizza) charts.pizza.destroy();
+    if(charts.pareto) charts.pareto.destroy();
+    if(charts.linear) charts.linear.destroy();
+
+    charts.pizza = new Chart(document.getElementById('chartPizza'), {
+        type: 'pie',
+        data: {
+            labels: ['Líquido no Banco', 'Impostos/Retenções'],
+            datasets: [{ data: [liquido, descontos], backgroundColor: ['#16a34a', '#dc2626'] }]
+        }
+    });
+
+    let custosCargo = {};
+    funcionarios.forEach(f => custosCargo[f.cargo] = (custosCargo[f.cargo] || 0) + f.salario);
+    let cargosOrdenados = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
+    let valoresPareto = cargosOrdenados.map(c => custosCargo[c]);
+
+    charts.pareto = new Chart(document.getElementById('chartPareto'), {
+        type: 'bar',
+        data: {
+            labels: cargosOrdenados.length ? cargosOrdenados : ['Sem Dados'],
+            datasets: [{ label: 'Custo por Categoria (R$)', data: valoresPareto.length ? valoresPareto :, backgroundColor: '#1e3a8a' }]
+        }
+    });
+
+    let pontosLineares = funcionarios.map((f, i) => i + 1);
+    let acumuloCusto = 0;
+    let valoresLineares = funcionarios.map(f => {
+        acumuloCusto += f.salario;
+        return acumuloCusto;
+    });
+
+    charts.linear = new Chart(document.getElementById('chartLinearidade'), {
+        type: 'line',
+        data: {
+            labels: pontosLineares.length ? pontosLineares :,
+            datasets: [{ label: 'Custo Acumulado', data: valoresLineares.length ? valoresLineares :, borderColor: '#0284c7', fill: false }]
+        }
+    });
+}
+
 
 
 
@@ -91,7 +142,7 @@ function renderizarTabela() {
 
     funcionarios.forEach(f => {
         const dados = encodeURIComponent(JSON.stringify(f));
-        const dataFormatada = f.dataAdmissao ? f.dataAdmissao.split('-').reverse().join('/') : '---';
+        const dataFormatada = f.data_admissao ? f.data_admissao.split('-').reverse().join('/') : '---';
         
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -100,8 +151,8 @@ function renderizarTabela() {
             <td>${formatarMoeda(f.salario)}</td>
             <td style="color:#16a34a"><strong>${formatarMoeda(f.liquido)}</strong></td>
             <td class="actions-cell">
-                <a onclick="abrirContracheque('${dados}')" class="btn-link" title="Mensal">📄 Mensal</a>
-                <a onclick="abrirFerias('${dados}')" class="btn-link" style="color:#16a34a" title="Férias">🌴 Férias</a>
+                <a onclick="abrirContracheque('${dados}')" class="btn-link">📄 Mensal</a>
+                <a onclick="abrirFerias('${dados}')" class="btn-link" style="color:#16a34a">🌴 Férias</a>
                 <button class="btn-delete" style="background:#0284c7; color:white; border:none; padding:4px 8px; margin-right:5px;" onclick="emitirRescisao('${dados}')">⚠️ Rescisão</button>
                 <button class="btn-delete" onclick="deletarFuncionario(${f.id})">Demitir</button>
             </td>
@@ -114,7 +165,7 @@ function imprimirBalanco() {
     const receita = parseFloat(document.getElementById('receita_empresa').value) || 0;
     let totalBruto = 0; let totalBeneficios = 0;
     funcionarios.forEach(f => { 
-        totalBruto += (f.salario + f.totalHeGanho + f.insalubridade + f.reflexo13Ferias); 
+        totalBruto += (f.salario + f.total_he_ganho + f.insalubridade + f.reflexo_13_ferias); 
         totalBeneficios += f.beneficios; 
     });
     let custoTotal = totalBruto + totalBeneficios;
@@ -143,10 +194,11 @@ function imprimirBalanco() {
 
 
 
+
 function abrirContracheque(dadosString) {
     const f = JSON.parse(decodeURIComponent(dadosString));
-    const proventosTotais = f.salario + f.totalHeGanho + f.reflexo13Ferias + f.insalubridade + f.beneficios + f.salarioFamilia;
-    const descontosTotais = f.totalDescontos;
+    const proventosTotais = f.salario + f.total_he_ganho + f.reflexo_13_ferias + f.insalubridade + f.beneficios + f.salario_familia;
+    const descontosTotais = f.total_descontos;
     
     const janela = window.open('', '_blank', 'width=750,height=850');
     janela.document.write(`
@@ -156,7 +208,7 @@ function abrirContracheque(dadosString) {
                 <p style="text-align:center; font-weight:bold; margin-bottom:5px;">TERCEIRO ADM ASSOCIADOS</p>
                 <p style="text-align:center; font-size:0.85rem; margin-bottom:15px;">Endereço: Av. Paulista, 1000 - Bela Vista, São Paulo - SP</p>
                 <p><strong>Colaborador:</strong> ${f.nome} | <strong>Cargo:</strong> ${f.cargo}</p>
-                <p><strong>Mês de Referência:</strong> ${f.mesRef} | <strong>Carga Horária:</strong> ${f.horasComp}h</p>
+                <p><strong>Mês de Referência:</strong> ${f.mes_ref} | <strong>Carga Horária:</strong> ${f.horas_comp}h</p>
                 <hr style="border:1px dashed #000; margin:15px 0;">
                 
                 <h4 style="margin-bottom:8px; color:#1e3a8a;">PROVENTOS (CRÉDITOS)</h4>
@@ -164,9 +216,9 @@ function abrirContracheque(dadosString) {
                 ${f.heSemana > 0 ? `<p>(+) Horas Extras Semanal (25%): ${f.heSemana}h = ${formatarMoeda(f.vHeSemana)}</p>` : ''}
                 ${f.heSabado > 0 ? `<p>(+) Horas Extras Sábado (50%): ${f.heSabado}h = ${formatarMoeda(f.vHeSabado)}</p>` : ''}
                 ${f.heDomingo > 0 ? `<p>(+) Horas Extras Dom/Fer (100%): ${f.heDomingo}h = ${formatarMoeda(f.vHeDomingo)}</p>` : ''}
-                ${f.reflexo13Ferias > 0 ? `<p>(+) Incidência de Multa/Reflexo HE (13º/Férias): ${formatarMoeda(f.reflexo13Ferias)}</p>` : ''}
+                ${f.reflexo_13_ferias > 0 ? `<p>(+) Incidência de Multa HE (13º/Férias): ${formatarMoeda(f.reflexo_13_ferias)}</p>` : ''}
                 ${f.insalubridade > 0 ? `<p>(+) Adicional de Insalubridade: ${formatarMoeda(f.insalubridade)}</p>` : ''}
-                ${f.salarioFamilia > 0 ? `<p>(+) Salário-Família Prescrito (${f.qtdFilhos} cota(s)): ${formatarMoeda(f.salarioFamilia)}</p>` : ''}
+                ${f.salario_familia > 0 ? `<p>(+) Salário-Família Prescrito (${f.qtd_filhos} cota(s)): ${formatarMoeda(f.salario_familia)}</p>` : ''}
                 <p>(+) Benefícios Corporativos: ${formatarMoeda(f.beneficios)}</p>
                 
                 <hr style="border:1px dashed #ccc; margin:10px 0;">
@@ -176,7 +228,7 @@ function abrirContracheque(dadosString) {
                 <p>(-) INSS Progressivo: ${formatarMoeda(f.inss)}</p>
                 <p>(-) Imposto de Renda (IRRF): ${formatarMoeda(f.irrf)}</p>
                 ${f.vt > 0 ? `<p>(-) Vale Transporte (6%): ${formatarMoeda(f.vt)}</p>` : ''}
-                ${f.adiantamentoValor > 0 ? `<p>(-) Adiantamento Salarial Compulsório (40%): ${formatarMoeda(f.adiantamentoValor)}</p>` : ''}
+                ${f.adiantamento_valor > 0 ? `<p>(-) Adiantamento Salarial Compulsório (40%): ${formatarMoeda(f.adiantamento_valor)}</p>` : ''}
                 ${f.planoSaude > 0 ? `<p>(-) Plano de Saúde: ${formatarMoeda(f.planoSaude)}</p>` : ''}
                 ${f.planoOdonto > 0 ? `<p>(-) Plano Odontológico: ${formatarMoeda(f.planoOdonto)}</p>` : ''}
                 ${f.valeFarmacia > 0 ? `<p>(-) Convênio Farmácia: ${formatarMoeda(f.valeFarmacia)}</p>` : ''}
@@ -219,7 +271,7 @@ function abrirFerias(dadosString) {
                 <h2 style="text-align:center;">RECIBO DE AVISO E GOZO DE FÉRIAS</h2>
                 <p style="text-align:center; font-weight:bold;">TERCEIRO ADM ASSOCIADOS</p><hr>
                 <p><strong>Colaborador:</strong> ${f.nome} | <strong>Cargo:</strong> ${f.cargo}</p>
-                <p><strong>Admissão:</strong> ${f.dataAdmissao.split('-').reverse().join('/')}</p><br>
+                <p><strong>Admissão:</strong> ${f.data_admissao.split('-').reverse().join('/')}</p><br>
                 <h4>PROVENTOS</h4>
                 <p>(+) Valor de Férias (30 Dias): ${formatarMoeda(baseFerias)}</p>
                 <p>(+) 1/3 Constitucional de Férias: ${formatarMoeda(terco)}</p>
@@ -241,7 +293,7 @@ async function emitirRescisao(dadosString) {
     const resposta = await fetch('/api/rescisao', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ salario: f.salario, admissao: f.dataAdmissao })
+        body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao })
     });
     const r = await resposta.json();
 
@@ -255,7 +307,7 @@ async function emitirRescisao(dadosString) {
                 <hr style="border:1px dashed #000; margin:15px 0;">
                 
                 <p><strong>Trabalhador:</strong> ${f.nome} | <strong>Cargo:</strong> ${f.cargo}</p>
-                <p><strong>Data Admissão:</strong> ${f.dataAdmissao.split('-').reverse().join('/')}</p>
+                <p><strong>Data Admissão:</strong> ${f.data_admissao.split('-').reverse().join('/')}</p>
                 <p><strong>Data Afastamento:</strong> ${new Date().toLocaleDateString('pt-BR')}</p><br>
                 
                 <h4 style="margin-bottom:8px; color:#1e3a8a;">VERBAS RESCISÓRIAS (PROVENTOS)</h4>
