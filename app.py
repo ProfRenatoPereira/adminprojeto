@@ -9,7 +9,7 @@ DB_FILE = 'folha.db'
 def iniciar_banco():
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
-    # Tabela principal expandida com Banco de Horas e Turnos
+    # Tabela principal contendo todas as variáveis trabalhistas da folha e rescisão
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS funcionarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,20 +18,22 @@ def iniciar_banco():
             v_he_semana REAL, v_he_sabado REAL, v_he_domingo REAL, total_he_ganho REAL,
             reflexo_13_ferias REAL, salario_familia REAL, inss REAL, irrf REAL, vt REAL,
             adiantamento_valor REAL, total_descontos REAL, liquido REAL,
-            banco_horas REAL, turno TEXT, hora_entrada TEXT, adicional_noturno REAL
+            banco_horas REAL, turno TEXT, hora_entrada TEXT, adicional_noturno REAL, regime_he TEXT
         )
     ''')
-    # Tabela exclusiva para inserção de novos cargos customizados
+    # Nova tabela para o cadastro e inserção de cargos dinâmicos
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS cargos_custom (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_cargo TEXT UNIQUE
         )
     ''')
+    # Alimentação inicial didática se o banco de dados estiver zerado
     cursor.execute("SELECT COUNT(*) FROM cargos_custom")
     if cursor.fetchone() == 0:
         cargos_padrao = [("Diretoria",), ("Gerência",), ("Analista",), ("Operacional",)]
         cursor.executemany("INSERT INTO cargos_custom (nome_cargo) VALUES (?)", cargos_padrao)
+        
     conexao.commit()
     conexao.close()
 
@@ -53,6 +55,8 @@ def calcular_irrf(salario_contribuicao, desconto_inss):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
 
 @app.route('/api/cargos', methods=['GET', 'POST'])
 def gerenciar_cargos():
@@ -94,11 +98,10 @@ def demitir_funcionario(id_func):
     return jsonify({'status': 'removido'})
 
 
-
 @app.route('/api/calcular', methods=['POST'])
 def calcular_e_salvar():
     dados = request.json
-    id_func = dados.get('id') # Identificador para Modo Salvar/Editar
+    id_func = dados.get('id')
     salario_base = float(dados.get('salario', 0))
     horas_comp = float(dados.get('horasComp', 220)) or 220
     beneficios = float(dados.get('beneficios', 0))
@@ -109,9 +112,9 @@ def calcular_e_salvar():
     observacoes = dados.get('observacoes', '')
     data_admissao = dados.get('dataAdmissao', '')
     mes_ref = dados.get('mesRef', '')
-    banco_horas = float(dados.get('bancoHoras', 0))
     turno = dados.get('turno', 'diurno')
     hora_entrada = dados.get('horaEntrada', '08:00')
+    regime_he = dados.get('regimeHe', 'pagar')
     
     he_semana = float(dados.get('heSemana', 0))
     he_sabado = float(dados.get('heSabado', 0))
@@ -126,29 +129,39 @@ def calcular_e_salvar():
     
     valor_hora = salario_base / horas_comp
     
-    # Didático: Adicional Noturno calculado (CLT Art. 73: +20%)
-    adicional_noturno = 0
-    if turno == 'noturno':
-        adicional_noturno = 60 * (valor_hora * 0.20)
+    # Didático: Adicional Noturno Técnico automatizado (+20%)
+    adicional_noturno = 60 * (valor_hora * 0.20) if turno == 'noturno' else 0
     
-    # Valorização monetária do saldo positivo do Banco de Horas
-    valor_banco = banco_horas * valor_hora if banco_horas > 0 else 0
-    total_he_ganho = (he_semana * (valor_hora * 1.25)) + (he_sabado * (valor_hora * 1.50)) + (he_domingo * (valor_hora * 2.00))
-    reflexo_13_ferias = total_he_ganho * (2.0 / 12.0)
+    # Cálculo das taxas de Horas Extras e destinação didática (Pagar ou Banco)
+    v_he_semana = he_semana * (valor_hora * 1.25)
+    v_he_sabado = he_sabado * (valor_hora * 1.50)
+    v_he_domingo = he_domingo * (valor_hora * 2.00)
     
+    banco_horas = 0
+    if regime_he == 'pagar':
+        total_he_ganho = v_he_semana + v_he_sabado + v_he_domingo
+        reflexo_13_ferias = total_he_ganho * (2.0 / 12.0)
+    else:
+        # Se for acumulado no Banco de Horas, soma o saldo físico de horas e zera o financeiro da folha atual
+        banco_horas = he_semana + he_sabado + he_domingo
+        total_he_ganho = 0
+        reflexo_13_ferias = 0
+        v_he_semana, v_he_sabado, v_he_domingo = 0, 0, 0
+        
     total_salario_familia = qtd_filhos * 62.04 if (salario_base + adicional_noturno) <= 1819.26 and qtd_filhos > 0 else 0
     
-    salario_contribuicao = salario_base + total_he_ganho + insalubridade + reflexo_13_ferias + adicional_noturno + valor_banco
+    # Base de arrecadação do INSS/IRRF
+    salario_contribuicao = salario_base + total_he_ganho + insalubridade + reflexo_13_ferias + adicional_noturno
     inss = calcular_inss(salario_contribuicao)
     irrf = calcular_irrf(salario_contribuicao, inss)
     vt = salario_base * 0.06 if descontar_vt else 0
     
-    proventos_previa = salario_base + beneficios + total_he_ganho + insalubridade + reflexo_13_ferias + total_salario_familia + adicional_noturno + valor_banco
-    descontos_previa = inss + irrf + vt + sindicato + plano_saude + plano_odonto + vale_farmacia
+    proventos_totais = salario_base + beneficios + total_he_ganho + insalubridade + reflexo_13_ferias + total_salario_familia + adicional_noturno
+    descontos_totais = inss + irrf + vt + sindicato + plano_saude + plano_odonto + vale_farmacia
     
-    valor_adiantamento = (proventos_previa - descontos_previa) * 0.40 if aplicar_adiantamento else 0
-    total_descontos = descontos_previa + valor_adiantamento
-    liquido_final = proventos_previa - total_descontos
+    valor_adiantamento = (proventos_totais - descontos_totais) * 0.40 if aplicar_adiantamento else 0
+    total_descontos_final = descontos_totais + valor_adiantamento
+    liquido_final = proventos_totais - total_descontos_final
     
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
@@ -158,20 +171,21 @@ def calcular_e_salvar():
             UPDATE funcionarios SET nome=?, cargo=?, salario=?, horas_comp=?, insalubridade=?, beneficios=?, qtd_filhos=?, 
             observacoes=?, data_admissao=?, mes_ref=?, v_he_semana=?, v_he_sabado=?, v_he_domingo=?, total_he_ganho=?, 
             reflexo_13_ferias=?, salario_familia=?, inss=?, irrf=?, vt=?, adiantamento_valor=?, total_descontos=?, liquido=?,
-            banco_horas=?, turno=?, hora_entrada=?, adicional_noturno=? WHERE id=?
+            banco_horas=?, turno=?, hora_entrada=?, adicional_noturno=?, regime_he=? WHERE id=?
         ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, data_admissao, mes_ref, 
-              (he_semana*(valor_hora*1.25)), (he_sabado*(valor_hora*1.50)), (he_domingo*(valor_hora*2.00)), total_he_ganho, reflexo_13_ferias, 
-              total_salario_familia, inss, irrf, vt, valor_adiantamento, total_descontos, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, id_func))
+              v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, reflexo_13_ferias, total_salario_familia, inss, irrf, vt, 
+              valor_adiantamento, total_descontos_final, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, regime_he, id_func))
     else:
         cursor.execute('''
             INSERT INTO funcionarios (nome, cargo, salario, horas_comp, insalubridade, beneficios, qtd_filhos, 
             observacoes, data_admissao, mes_ref, v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, 
             reflexo_13_ferias, salario_familia, inss, irrf, vt, adiantamento_valor, total_descontos, liquido,
-            banco_horas, turno, hora_entrada, adicional_noturno)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            banco_horas, turno, hora_entrada, adicional_noturno, regime_he)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, data_admissao, mes_ref, 
-              (he_semana*(valor_hora*1.25)), (he_sabado*(valor_hora*1.50)), (he_domingo*(valor_hora*2.00)), total_he_ganho, reflexo_13_ferias, 
-              total_salario_familia, inss, irrf, vt, valor_adiantamento, total_descontos, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno))
+              v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, reflexo_13_ferias, total_salario_familia, inss, irrf, vt, 
+              valor_adiantamento, total_descontos_final, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, regime_he))
+        
     conexao.commit()
     conexao.close()
     return jsonify({'status': 'sucesso'})
