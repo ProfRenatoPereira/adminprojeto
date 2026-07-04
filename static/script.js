@@ -1,12 +1,10 @@
 let funcionarios = [];
-let charts = {};
-
 
 function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Escuta a abertura da página para ler os dados fixos do SQLite
+// Inicialização automática ao abrir a aplicação
 window.addEventListener('DOMContentLoaded', carregarDadosBanco);
 
 async function carregarDadosBanco() {
@@ -15,8 +13,6 @@ async function carregarDadosBanco() {
     renderizarTabela();
     atualizarDashboard();
 }
-
-
 
 async function adicionarFuncionario() {
     const nome = document.getElementById('nome').value.trim();
@@ -64,8 +60,6 @@ async function deletarFuncionario(id) {
 }
 
 
-
-
 function atualizarDashboard() {
     const receita = parseFloat(document.getElementById('receita_empresa').value) || 0;
     const limiteMax = parseInt(document.getElementById('limite_func').value) || 10;
@@ -88,52 +82,52 @@ function atualizarDashboard() {
 
     document.getElementById('card_balanco').className = saldoFinal < 0 ? 'metric negative' : 'metric';
     
-    renderizarGraficos(totalLiquido, totalDescontos);
+    renderizarGraficosNativos(totalLiquido, totalDescontos);
 }
 
-function renderizarGraficos(liquido, descontos) {
-    if(charts.pizza) charts.pizza.destroy();
-    if(charts.pareto) charts.pareto.destroy();
-    if(charts.linear) charts.linear.destroy();
+function renderizarGraficosNativos(liquido, descontos) {
+    const total = liquido + descontos;
+    const pizza = document.getElementById('nativePizza');
+    if (pizza) {
+        const percDescontos = total > 0 ? ((descontos / total) * 100).toFixed(1) : 0;
+        pizza.style.background = `conic-gradient(#dc2626 0% ${percDescontos}%, #16a34a ${percDescontos}% 100%)`;
+    }
 
-    charts.pizza = new Chart(document.getElementById('chartPizza'), {
-        type: 'pie',
-        data: {
-            labels: ['Líquido no Banco', 'Impostos/Retenções'],
-            datasets: [{ data: [liquido, descontos], backgroundColor: ['#16a34a', '#dc2626'] }]
-        }
-    });
-
-    let custosCargo = {};
+    // Processamento de Pareto Nativo por Categoria
+    const custosCargo = {};
     funcionarios.forEach(f => custosCargo[f.cargo] = (custosCargo[f.cargo] || 0) + f.salario);
-    let cargosOrdenados = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
-    let valoresPareto = cargosOrdenados.map(c => custosCargo[c]);
+    const cargos = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
+    const maxCusto = cargos.length > 0 ? custosCargo[cargos[0]] : 1;
+    
+    const containerPareto = document.getElementById('nativePareto');
+    if (containerPareto) {
+        containerPareto.innerHTML = '';
+        cargos.slice(0, 4).forEach(c => {
+            const pct = (custosCargo[c] / maxCusto) * 100;
+            containerPareto.innerHTML += `
+                <div class="bar-wrapper">
+                    <div class="bar-native" style="height: ${pct}%">${pct.toFixed(0)}%</div>
+                    <div class="bar-label">${c}</div>
+                </div>`;
+        });
+    }
 
-    charts.pareto = new Chart(document.getElementById('chartPareto'), {
-        type: 'bar',
-        data: {
-            labels: cargosOrdenados.length ? cargosOrdenados : ['Sem Dados'],
-            datasets: [{ label: 'Custo por Categoria (R$)', data: valoresPareto.length ? valoresPareto :, backgroundColor: '#1e3a8a' }]
-        }
-    });
-
-    let pontosLineares = funcionarios.map((f, i) => i + 1);
-    let acumuloCusto = 0;
-    let valoresLineares = funcionarios.map(f => {
-        acumuloCusto += f.salario;
-        return acumuloCusto;
-    });
-
-    charts.linear = new Chart(document.getElementById('chartLinearidade'), {
-        type: 'line',
-        data: {
-            labels: pontosLineares.length ? pontosLineares :,
-            datasets: [{ label: 'Custo Acumulado', data: valoresLineares.length ? valoresLineares :, borderColor: '#0284c7', fill: false }]
-        }
-    });
+    // Processamento Linear de Elasticidade Individual
+    const containerLinear = document.getElementById('nativeLinear');
+    if (containerLinear) {
+        containerLinear.innerHTML = '';
+        const maxLiquido = funcionarios.length > 0 ? Math.max(...funcionarios.map(f => f.liquido)) : 1;
+        funcionarios.slice(-4).forEach(f => {
+            const pct = (f.liquido / maxLiquido) * 100;
+            containerLinear.innerHTML += `
+                <div class="linear-row">
+                    <div class="linear-name">${f.nome}</div>
+                    <div class="linear-bar-bg"><div class="linear-bar-fill" style="width: ${pct}%"></div></div>
+                    <div class="linear-value">${formatarMoeda(f.liquido)}</div>
+                </div>`;
+        });
+    }
 }
-
-
 
 
 
@@ -193,9 +187,6 @@ function imprimirBalanco() {
 }
 
 
-
-
-
 function abrirContracheque(dadosString) {
     const f = JSON.parse(decodeURIComponent(dadosString));
     const proventosTotais = f.salario + f.total_he_ganho + f.reflexo_13_ferias + f.insalubridade + f.beneficios + f.salario_familia;
@@ -214,43 +205,37 @@ function abrirContracheque(dadosString) {
                 
                 <h4 style="margin-bottom:8px; color:#1e3a8a;">PROVENTOS (CRÉDITOS)</h4>
                 <p>(+) Salário Base: ${formatarMoeda(f.salario)}</p>
-                ${f.heSemana > 0 ? `<p>(+) Horas Extras Semanal (25%): ${f.heSemana}h = ${formatarMoeda(f.vHeSemana)}</p>` : ''}
-                ${f.heSabado > 0 ? `<p>(+) Horas Extras Sábado (50%): ${f.heSabado}h = ${formatarMoeda(f.vHeSabado)}</p>` : ''}
-                ${f.heDomingo > 0 ? `<p>(+) Horas Extras Dom/Fer (100%): ${f.heDomingo}h = ${formatarMoeda(f.vHeDomingo)}</p>` : ''}
-                ${f.reflexo_13_ferias > 0 ? `<p>(+) Incidência de Multa HE (13º/Férias): ${formatarMoeda(f.reflexo_13_ferias)}</p>` : ''}
-                ${f.insalubridade > 0 ? `<p>(+) Adicional de Insalubridade: ${formatarMoeda(f.insalubridade)}</p>` : ''}
-                ${f.salario_familia > 0 ? `<p>(+) Salário-Família Prescrito (${f.qtd_filhos} cota(s)): ${formatarMoeda(f.salario_familia)}</p>` : ''}
-                <p>(+) Benefícios Corporativos: ${formatarMoeda(f.beneficios)}</p>
+                ${f.v_he_semana > 0 ? `<p>(+) Horas Extras (25%): ${formatarMoeda(f.v_he_semana)}</p>` : ''}
+                ${f.v_he_sabado > 0 ? `<p>(+) Horas Extras (50%): ${formatarMoeda(f.v_he_sabado)}</p>` : ''}
+                ${f.v_he_domingo > 0 ? `<p>(+) Horas Extras (100%): ${formatarMoeda(f.v_he_domingo)}</p>` : ''}
+                ${f.reflexo_13_ferias > 0 ? `<p>(+) Reflexo HE (13º/Férias): ${formatarMoeda(f.reflexo_13_ferias)}</p>` : ''}
+                ${f.insalubridade > 0 ? `<p>(+) Insalubridade: ${formatarMoeda(f.insalubridade)}</p>` : ''}
+                ${f.salario_familia > 0 ? `<p>(+) Salário-Família: ${formatarMoeda(f.salario_familia)}</p>` : ''}
+                <p>(+) Benefícios: ${formatarMoeda(f.beneficios)}</p>
                 
                 <hr style="border:1px dashed #ccc; margin:10px 0;">
-                <p style="font-weight:bold; text-align:right;">TOTAL DOS PROVENTOS: ${formatarMoeda(proventosTotais)}</p>
+                <p style="font-weight:bold; text-align:right;">TOTAL PROVENTOS: ${formatarMoeda(proventosTotais)}</p>
                 
                 <h4 style="margin:20px 0 8px 0; color:#dc2626;">DESCONTOS (RETENÇÕES)</h4>
                 <p>(-) INSS Progressivo: ${formatarMoeda(f.inss)}</p>
                 <p>(-) Imposto de Renda (IRRF): ${formatarMoeda(f.irrf)}</p>
                 ${f.vt > 0 ? `<p>(-) Vale Transporte (6%): ${formatarMoeda(f.vt)}</p>` : ''}
-                ${f.adiantamento_valor > 0 ? `<p>(-) Adiantamento Salarial Compulsório (40%): ${formatarMoeda(f.adiantamento_valor)}</p>` : ''}
-                ${f.planoSaude > 0 ? `<p>(-) Plano de Saúde: ${formatarMoeda(f.planoSaude)}</p>` : ''}
-                ${f.planoOdonto > 0 ? `<p>(-) Plano Odontológico: ${formatarMoeda(f.planoOdonto)}</p>` : ''}
-                ${f.valeFarmacia > 0 ? `<p>(-) Convênio Farmácia: ${formatarMoeda(f.valeFarmacia)}</p>` : ''}
-                ${f.sindicato > 0 ? `<p>(-) Contribuição Sindical: ${formatarMoeda(f.sindicato)}</p>` : ''}
+                ${f.adiantamento_valor > 0 ? `<p>(-) Adiantamento (40%): ${formatarMoeda(f.adiantamento_valor)}</p>` : ''}
+                ${f.plano_saude > 0 ? `<p>(-) Plano Saúde: ${formatarMoeda(f.plano_saude)}</p>` : ''}
+                ${f.plano_odonto > 0 ? `<p>(-) Plano Odonto: ${formatarMoeda(f.plano_odonto)}</p>` : ''}
+                ${f.vale_farmacia > 0 ? `<p>(-) Vale Farmácia: ${formatarMoeda(f.vale_farmacia)}</p>` : ''}
+                ${f.sindicato > 0 ? `<p>(-) Sindicato: ${formatarMoeda(f.sindicato)}</p>` : ''}
                 
                 <hr style="border:1px dashed #ccc; margin:10px 0;">
-                <p style="font-weight:bold; text-align:right;">TOTAL DOS DESCONTOS: ${formatarMoeda(descontosTotais)}</p>
+                <p style="font-weight:bold; text-align:right;">TOTAL DESCONTOS: ${formatarMoeda(descontosTotais)}</p>
                 
                 <hr style="border:1px dashed #000; margin:20px 0 10px 0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:10px; border:1px solid #000;">
                     <h3 style="font-size:1.2rem; margin:0;">VALOR LÍQUIDO A RECEBER:</h3>
                     <h3 style="font-size:1.4rem; margin:0; color:#16a34a;">${formatarMoeda(f.liquido)}</h3>
                 </div>
-                
-                ${f.observacoes ? `
-                <div style="margin-top:20px; border:1px solid #cbd5e1; padding:10px; background:#fff;">
-                    <strong>Observações / Notas Internas:</strong>
-                    <p style="margin-top:5px; font-style:italic; color:#334155;">${f.observacoes}</p>
-                </div>` : ''}
-                
-                <br><br><p style="text-align:center;">___________________________<br>Assinatura do Colaborador</p>
+                ${f.observacoes ? `<div style="margin-top:20px; border:1px solid #cbd5e1; padding:10px;"><strong>Notas:</strong> <p>${f.observacoes}</p></div>` : ''}
+                <br><br><p style="text-align:center;">___________________________<br>Assinatura</p>
             </div>
             <script>window.print();<\/script>
         </body></html>
@@ -274,14 +259,12 @@ function abrirFerias(dadosString) {
                 <p><strong>Colaborador:</strong> ${f.nome} | <strong>Cargo:</strong> ${f.cargo}</p>
                 <p><strong>Admissão:</strong> ${f.data_admissao.split('-').reverse().join('/')}</p><br>
                 <h4>PROVENTOS</h4>
-                <p>(+) Valor de Férias (30 Dias): ${formatarMoeda(baseFerias)}</p>
-                <p>(+) 1/3 Constitucional de Férias: ${formatarMoeda(terco)}</p>
+                <p>(+) Valor de Férias: ${formatarMoeda(baseFerias)}</p>
+                <p>(+) 1/3 Constitucional: ${formatarMoeda(terco)}</p>
                 <h4>DESCONTOS</h4>
-                <p style="color:red">(-) INSS Retido sobre Férias: ${formatarMoeda(inssFerias)}</p><hr>
-                <p>TOTAL PROVENTOS: ${formatarMoeda(proventos)}</p>
-                <p>TOTAL DESCONTOS: ${formatarMoeda(inssFerias)}</p>
+                <p style="color:red">(-) INSS: ${formatarMoeda(inssFerias)}</p><hr>
                 <h3>VALOR LÍQUIDO DAS FÉRIAS: ${formatarMoeda(liquidoFerias)}</h3>
-                <br><br><p style="text-align:center;">___________________________<br>Assinatura do Colaborador</p>
+                <br><br><p style="text-align:center;">___________________________<br>Assinatura</p>
             </div>
             <script>window.print();<\/script>
         </body></html>
@@ -290,7 +273,6 @@ function abrirFerias(dadosString) {
 
 async function emitirRescisao(dadosString) {
     const f = JSON.parse(decodeURIComponent(dadosString));
-    
     const resposta = await fetch('/api/rescisao', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -302,38 +284,14 @@ async function emitirRescisao(dadosString) {
     janela.document.write(`
         <html><body style="font-family:monospace; padding:30px; color:#000;">
             <div style="border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;">
-                <h2 style="text-align:center; color:#dc2626; margin-bottom:5px;">TERMO DE RESCISÃO DO CONTRATO DE TRABALHO</h2>
-                <p style="text-align:center; font-weight:bold; margin-bottom:5px;">TERCEIRO ADM ASSOCIADOS</p>
-                <p style="text-align:center; font-size:0.85rem; margin-bottom:15px;">Endereço: Av. Paulista, 1000 - Bela Vista, São Paulo - SP</p>
-                <hr style="border:1px dashed #000; margin:15px 0;">
-                
-                <p><strong>Trabalhador:</strong> ${f.nome} | <strong>Cargo:</strong> ${f.cargo}</p>
-                <p><strong>Data Admissão:</strong> ${f.data_admissao.split('-').reverse().join('/')}</p>
-                <p><strong>Data Afastamento:</strong> ${new Date().toLocaleDateString('pt-BR')}</p><br>
-                
-                <h4 style="margin-bottom:8px; color:#1e3a8a;">VERBAS RESCISÓRIAS (PROVENTOS)</h4>
-                <p>(+) Saldo de Salário Proporcional (15 dias): ${formatarMoeda(r.saldoSalario)}</p>
-                <p>(+) Aviso Prévio Indenizado Proporcional (${r.diasAviso} Dias): ${formatarMoeda(r.valorAvisoPrevio)}</p>
-                <p>(+) 13º Salário Proporcional: ${formatarMoeda(r.decimoTerceiroProp)}</p>
-                <p>(+) Férias Proporcionais Acumuladas: ${formatarMoeda(r.feriasProporcionais)}</p>
-                <p>(+) 1/3 Constitucional sobre Férias: ${formatarMoeda(r.tercoConstitucional)}</p>
-                
-                <hr style="border:1px dashed #ccc; margin:10px 0;">
-                <p style="font-weight:bold; text-align:right;">TOTAL DOS PROVENTOS: ${formatarMoeda(r.totalProventos)}</p>
-                
-                <h4 style="margin:20px 0 8px 0; color:#dc2626;">DEDUÇÕES RESCISÓRIAS</h4>
-                <p style="color:red">(-) Dedução Compulsória INSS/IRRF: ${formatarMoeda(r.inss)}</p>
-                
-                <hr style="border:1px dashed #ccc; margin:10px 0;">
-                <p style="font-weight:bold; text-align:right;">TOTAL DOS DESCONTOS: ${formatarMoeda(r.inss)}</p>
-                
-                <hr style="border:1px dashed #000; margin:20px 0 10px 0;">
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#fffbf0; padding:10px; border:1px solid #dc2626;">
-                    <h3 style="font-size:1.15rem; margin:0; color:#b45309;">LÍQUIDO DA QUITAÇÃO RESCISÓRIA:</h3>
-                    <h3 style="font-size:1.35rem; margin:0; color:#b45309;">${formatarMoeda(r.liquido)}</h3>
-                </div>
-                
-                <br><br><p style="text-align:center;">___________________________<br>Assinatura do Ex-Colaborador</p>
+                <h2 style="text-align:center; color:#dc2626;">TERMO DE RESCISÃO DO CONTRATO</h2>
+                <p style="text-align:center; font-weight:bold;">TERCEIRO ADM ASSOCIADOS</p><hr>
+                <p><strong>Trabalhador:</strong> ${f.nome}</p>
+                <p><strong>Aviso Prévio Indenizado Proporcional (${r.diasAviso} Dias):</strong> ${formatarMoeda(r.valorAvisoPrevio)}</p>
+                <p><strong>13º Salário Proporcional:</strong> ${formatarMoeda(r.decimoTerceiroProp)}</p>
+                <p><strong>Férias Proporcionais + 1/3:</strong> ${formatarMoeda(r.feriasProporcionais + r.tercoConstitucional)}</p><hr>
+                <h3>LÍQUIDO DA QUITAÇÃO: ${formatarMoeda(r.liquido)}</h3>
+                <br><br><p style="text-align:center;">___________________________<br>Assinatura</p>
             </div>
             <script>window.print();<\/script>
         </body></html>
