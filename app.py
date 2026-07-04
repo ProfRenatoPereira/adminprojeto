@@ -1,7 +1,26 @@
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime
+import sqlite3
+import os
 
 app = Flask(__name__)
+DB_FILE = 'folha.db'
+
+def iniciar_banco():
+    conexao = sqlite3.connect(DB_FILE)
+    cursor = conexao.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS funcionarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT EXISTS, cargo TEXT, salario REAL, horas_comp REAL, insalubridade REAL,
+            beneficios REAL, qtd_filhos INTEGER, observacoes TEXT, data_admissao TEXT, mes_ref TEXT,
+            v_he_semana REAL, v_he_sabado REAL, v_he_domingo REAL, total_he_ganho REAL,
+            reflexo_13_ferias REAL, salario_familia REAL, inss REAL, irrf REAL, vt REAL,
+            adiantamento_valor REAL, total_descontos REAL, liquido REAL
+        )
+    ''')
+    conexao.commit()
+    conexao.close()
 
 def calcular_inss(salario_contribuicao):
     if salario_contribuicao <= 1412: return salario_contribuicao * 0.075
@@ -22,14 +41,29 @@ def calcular_irrf(salario_contribuicao, desconto_inss):
 def index():
     return render_template('index.html')
 
+@app.route('/api/funcionarios', methods=['GET'])
+def listar_funcionarios():
+    conexao = sqlite3.connect(DB_FILE)
+    conexao.row_factory = sqlite3.Row
+    cursor = conexao.cursor()
+    cursor.execute('SELECT * FROM funcionarios')
+    linhas = cursor.fetchall()
+    conexao.close()
+    return jsonify([dict(linha) for linha in linhas])
+
 @app.route('/api/calcular', methods=['POST'])
-def calcular_folha():
+def calcular_e_salvar():
     dados = request.json
     salario_base = float(dados.get('salario', 0))
     horas_comp = float(dados.get('horasComp', 220)) or 220
     beneficios = float(dados.get('beneficios', 0))
     insalubridade = float(dados.get('insalubridade', 0))
     qtd_filhos = int(dados.get('qtdFilhos', 0))
+    nome = dados.get('nome', '').strip()
+    cargo = dados.get('cargo', '')
+    observacoes = dados.get('observacoes', '')
+    data_admissao = dados.get('dataAdmissao', '')
+    mes_ref = dados.get('mesRef', '')
     
     he_semana = float(dados.get('heSemana', 0))
     he_sabado = float(dados.get('heSabado', 0))
@@ -63,14 +97,32 @@ def calcular_folha():
     
     valor_adiantamento = (proventos_previa - descontos_previa) * 0.40 if aplicar_adiantamento else 0
     total_descontos = descontos_previa + valor_adiantamento
+    liquido_final = proventos_previa - total_descontos
     
-    return jsonify({
-        'vHeSemana': v_he_semana, 'vHeSabado': v_he_sabado, 'vHeDomingo': v_he_domingo,
-        'totalHeGanho': total_he_ganho, 'reflexo13Ferias': reflexo_13_ferias,
-        'salarioFamilia': total_salario_familia, 'inss': inss, 'irrf': irrf, 'vt': vt,
-        'adiantamentoValor': valor_adiantamento, 'totalDescontos': total_descontos,
-        'liquido': proventos_previa - total_descontos
-    })
+    # Gravação no Banco de Dados SQLite
+    conexao = sqlite3.connect(DB_FILE)
+    cursor = conexao.cursor()
+    cursor.execute('''
+        INSERT INTO funcionarios (nome, cargo, salario, horas_comp, insalubridade, beneficios, qtd_filhos, 
+        observacoes, data_admissao, mes_ref, v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, 
+        reflexo_13_ferias, salario_familia, inss, irrf, vt, adiantamento_valor, total_descontos, liquido)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, 
+          data_admissao, mes_ref, v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, reflexo_13_ferias, 
+          total_salario_familia, inss, irrf, vt, valor_adiantamento, total_descontos, liquido_final))
+    conexao.commit()
+    conexao.close()
+    
+    return jsonify({'status': 'sucesso'})
+
+@app.route('/api/funcionarios/<int:id_func>', methods=['DELETE'])
+def demitir_funcionario(id_func):
+    conexao = sqlite3.connect(DB_FILE)
+    cursor = conexao.cursor()
+    cursor.execute('DELETE FROM funcionarios WHERE id = ?', (id_func,))
+    conexao.commit()
+    conexao.close()
+    return jsonify({'status': 'removido'})
 
 @app.route('/api/rescisao', methods=['POST'])
 def calcular_rescisao():
@@ -78,45 +130,31 @@ def calcular_rescisao():
     salario_base = float(dados.get('salario', 0))
     dt_admissao_str = dados.get('admissao', '')
     
-    # Cálculo dinâmico do tempo de casa para calcular o Aviso Prévio Proporcional
     dias_aviso = 30
-    anos_trabalhados = 0
     if dt_admissao_str:
         try:
             dt_admissao = datetime.strptime(dt_admissao_str, "%Y-%m-%d")
             hoje = datetime.now()
-            anos_trabalhados = hoje.year - dt_admissao.year - ((hoje.month, hoje.day) < (dt_admissao.month, dt_admissao.day))
-            if anos_trabalhados > 0:
-                # Lei 12.506: +3 dias por ano completo trabalhado, limitado a mais 60 dias (total 90)
-                dias_aviso += min(anos_trabalhados * 3, 60)
-        except Exception:
-            pass
+            anos = hoje.year - dt_admissao.year - ((hoje.month, hoje.day) < (dt_admissao.month, dt_admissao.day))
+            if anos > 0: dias_aviso += min(anos * 3, 60)
+        except: pass
 
-    # Valor financeiro do Aviso Prévio Proporcional Indenizado
-    valor_aviso_previo = (salario_base / 30) * dias_aviso
-
-    saldo_salario = salario_base * (15 / 30)  # Exemplo padrão: 15 dias trabalhados
-    decimo_terceiro_prop = (salario_base / 12) * 6  # Exemplo padrão: 6 meses proporcionais
-    ferias_proporcionais = (salario_base / 12) * 6
-    terco_constitucional = ferias_proporcionais / 3
-    
-    total_proventos = saldo_salario + decimo_terceiro_prop + ferias_proporcionais + terco_constitucional + valor_aviso_previo
-    
-    inss_rescisao = calcular_inss(saldo_salario + decimo_terceiro_prop)
-    irrf_rescisao = calcular_irrf(saldo_salario + decimo_terceiro_prop, inss_rescisao)
-    total_descontos = inss_rescisao + irrf_rescisao
+    valor_aviso = (salario_base / 30) * dias_aviso
+    saldo_salario = salario_base * 0.5
+    decimo_terceiro = (salario_base / 12) * 6
+    ferias_prop = (salario_base / 12) * 6
+    terco = ferias_prop / 3
+    total_prov = saldo_salario + decimo_terceiro + ferias_prop + terco + valor_aviso
+    total_desc = calcular_inss(saldo_salario + decimo_terceiro)
     
     return jsonify({
-        'saldoSalario': saldo_salario,
-        'decimoTerceiroProp': decimo_terceiro_prop,
-        'feriasProporcionais': ferias_proporcionais,
-        'tercoConstitucional': terco_constitucional,
-        'diasAviso': dias_aviso,
-        'valorAvisoPrevio': valor_aviso_previo,
-        'totalProventos': total_proventos,
-        'inss': total_descontos,
-        'liquido': total_proventos - total_descontos
+        'saldoSalario': saldo_salario, 'decimoTerceiroProp': decimo_terceiro, 'feriasProporcionais': ferias_prop,
+        'tercoConstitucional': terco, 'diasAviso': dias_aviso, 'valorAvisoPrevio': valor_aviso,
+        'totalProventos': total_prov, 'inss': total_desc, 'liquido': total_prov - total_desc
     })
 
+iniciar_banco()
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    porta = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=porta, debug=True)
