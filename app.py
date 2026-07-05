@@ -5,7 +5,6 @@ import os
 
 app = Flask(__name__)
 DB_FILE = 'folha_v2.db'
-
 def iniciar_banco():
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
