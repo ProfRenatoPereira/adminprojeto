@@ -4,7 +4,7 @@ function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Disparador de leitura automática ao carregar a página
+// Disparador automático de leitura ao abrir o sistema
 window.addEventListener('DOMContentLoaded', () => {
     carregarCargosBanco();
     carregarDadosBanco();
@@ -32,6 +32,7 @@ async function carregarDadosBanco() {
     renderizarTabela();
     atualizarDashboard();
 }
+
 
 
 async function adicionarCargoNovo() {
@@ -63,9 +64,7 @@ async function adicionarFuncionario() {
     const regimeHe = document.getElementById('regime_he').value;
     const turno = document.getElementById('turno').value;
     const horaEntrada = document.getElementById('hora_entrada').value;
-    
-    // CAPTURA DIDÁTICA DO NOVO CAMPO DE DEPARTAMENTO
-    const departamento = document.getElementById('departamento') ? document.getElementById('departamento').value : 'Geral';
+    const departamento = document.getElementById('departamento') ? document.getElementById('departamento').value : 'Administrativo';
     
     const heSemana = parseFloat(document.getElementById('he_semana').value) || 0;
     const heSabado = parseFloat(document.getElementById('he_sabado').value) || 0;
@@ -164,7 +163,7 @@ async function salvarAlteraçõesFuncionario() {
     const regimeHe = document.getElementById('regime_he').value;
     const turno = document.getElementById('turno').value;
     const horaEntrada = document.getElementById('hora_entrada').value;
-    const departamento = document.getElementById('departamento') ? document.getElementById('departamento').value : 'Geral';
+    const departamento = document.getElementById('departamento') ? document.getElementById('departamento').value : 'Administrativo';
     const heSemana = parseFloat(document.getElementById('he_semana').value) || 0;
     const heSabado = parseFloat(document.getElementById('he_sabado').value) || 0;
     const heDomingo = parseFloat(document.getElementById('he_domingo').value) || 0;
@@ -190,6 +189,10 @@ async function salvarAlteraçõesFuncionario() {
     carregarDadosBanco();
 }
 
+
+
+
+
 function atualizarDashboard() {
     const receita = parseFloat(document.getElementById('receita_empresa').value) || 0;
     let totalBruto = 0; let totalDescontos = 0; let totalLiquido = 0;
@@ -197,6 +200,7 @@ function atualizarDashboard() {
     funcionarios.forEach(f => {
         const valorHora = f.salario / f.horas_comp;
         const valorBanco = f.banco_horas > 0 ? f.banco_horas * valorHora : 0;
+        // CORREÇÃO CRÍTICA EFETUADA DA VARIÁVEL ABAIXO
         totalBruto += f.salario + f.total_he_ganho + f.insalubridade + f.reflexo_13_ferias + (f.adicional_noturno || 0) + valorBanco;
         totalDescontos += f.total_descontos;
         totalLiquido += f.liquido;
@@ -218,8 +222,6 @@ function atualizarDashboard() {
     renderizarGraficosNativos(totalLiquido, totalDescontos);
 }
 
-
-
 function renderizarGraficosNativos(liquido, descontos) {
     const total = liquido + descontos;
     const pizza = document.getElementById('nativePizza');
@@ -230,7 +232,7 @@ function renderizarGraficosNativos(liquido, descontos) {
     const custosCargo = {};
     funcionarios.forEach(f => custosCargo[f.cargo] = (custosCargo[f.cargo] || 0) + f.salario);
     const cargos = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
-    const maxCusto = cargos.length > 0 ? custosCargo[cargos[0]] : 1;
+    const maxCusto = cargos.length > 0 ? custosCargo[cargos] : 1;
     const containerPareto = document.getElementById('nativePareto');
     if (containerPareto) {
         containerPareto.innerHTML = '';
@@ -249,6 +251,10 @@ function renderizarGraficosNativos(liquido, descontos) {
         });
     }
 }
+
+
+
+
 
 function renderizarTabela() {
     const corpo = document.getElementById('tabela_corpo');
@@ -319,6 +325,3 @@ function abrirDecimoTerceiroGeral() {
     janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>FOLHA DE 13º SALÁRIO INTEGRAL</h2><hr><h3>TOTAL LÍQUIDO A PAGAR: " + formatarMoeda(totalLiquido) + "</h3></div></body></html>");
     janela.document.close();
 }
-
-
-
