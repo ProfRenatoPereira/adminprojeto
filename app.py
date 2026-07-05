@@ -9,7 +9,7 @@ DB_FILE = 'folha_v2.db'
 def iniciar_banco():
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
-    # Criação da tabela de funcionários com todas as novas variáveis didáticas
+    # Tabela principal contendo a nova coluna de departamento
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS funcionarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,7 +18,8 @@ def iniciar_banco():
             v_he_semana REAL, v_he_sabado REAL, v_he_domingo REAL, total_he_ganho REAL,
             reflexo_13_ferias REAL, salario_familia REAL, inss REAL, irrf REAL, vt REAL,
             adiantamento_valor REAL, total_descontos REAL, liquido REAL,
-            banco_horas REAL, turno TEXT, hora_entrada TEXT, adicional_noturno REAL, regime_he TEXT
+            banco_horas REAL, turno TEXT, hora_entrada TEXT, adicional_noturno REAL, regime_he TEXT,
+            departamento TEXT
         )
     ''')
     # Tabela dinâmica de cargos customizados
@@ -55,7 +56,6 @@ def index():
     return render_template('index.html')
 
 
-
 @app.route('/api/cargos', methods=['GET', 'POST'])
 def gerenciar_cargos():
     conexao = sqlite3.connect(DB_FILE)
@@ -84,7 +84,7 @@ def listar_funcionarios():
     cursor.execute('SELECT * FROM funcionarios')
     linhas = cursor.fetchall()
     conexao.close()
-    return jsonify([dict(linha) for line in linhas])
+    return jsonify([dict(linha) for linha in linhas])
 
 @app.route('/api/funcionarios/<int:id_func>', methods=['DELETE'])
 def demitir_funcionario(id_func):
@@ -94,6 +94,8 @@ def demitir_funcionario(id_func):
     conexao.commit()
     conexao.close()
     return jsonify({'status': 'removido'})
+
+
 @app.route('/api/calcular', methods=['POST'])
 def calcular_e_salvar():
     dados = request.json
@@ -111,6 +113,7 @@ def calcular_e_salvar():
     turno = dados.get('turno', 'diurno')
     hora_entrada = dados.get('horaEntrada', '08:00')
     regime_he = dados.get('regimeHe', 'pagar')
+    departamento = dados.get('departamento', 'Administrativo')
     
     he_semana = float(dados.get('heSemana', 0))
     he_sabado = float(dados.get('heSabado', 0))
@@ -125,7 +128,7 @@ def calcular_e_salvar():
     
     valor_hora = salario_base / horas_comp
     
-    # Automatização Pedagógica: Adicional Noturno Técnico (+20% conforme Art. 73 CLT)
+    # Didático: Adicional Noturno Automatizado (+20% conforme Art. 73 CLT)
     adicional_noturno = 60 * (valor_hora * 0.20) if turno == 'noturno' else 0
     
     v_he_semana = he_semana * (valor_hora * 1.25)
@@ -137,7 +140,7 @@ def calcular_e_salvar():
         total_he_ganho = v_he_semana + v_he_sabado + v_he_domingo
         reflexo_13_ferias = total_he_ganho * (2.0 / 12.0)
     else:
-        # Se for regime de banco, acumula as horas extras físicas e zera os ganhos na folha atual
+        # Se for acumulado no Banco de Horas, guarda o saldo de horas extras e zera o financeiro da folha atual
         banco_horas = he_semana + he_sabado + he_domingo
         total_he_ganho = 0
         reflexo_13_ferias = 0
@@ -165,20 +168,20 @@ def calcular_e_salvar():
             UPDATE funcionarios SET nome=?, cargo=?, salario=?, horas_comp=?, insalubridade=?, beneficios=?, qtd_filhos=?, 
             observacoes=?, data_admissao=?, mes_ref=?, v_he_semana=?, v_he_sabado=?, v_he_domingo=?, total_he_ganho=?, 
             reflexo_13_ferias=?, salario_familia=?, inss=?, irrf=?, vt=?, adiantamento_valor=?, total_descontos=?, liquido=?,
-            banco_horas=?, turno=?, hora_entrada=?, adicional_noturno=?, regime_he=? WHERE id=?
+            banco_horas=?, turno=?, hora_entrada=?, adicional_noturno=?, regime_he=?, departamento=? WHERE id=?
         ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, data_admissao, mes_ref, 
               v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, reflexo_13_ferias, total_salario_familia, inss, irrf, vt, 
-              valor_adiantamento, total_descontos_final, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, regime_he, id_func))
+              valor_adiantamento, total_descontos_final, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, regime_he, departamento, id_func))
     else:
         cursor.execute('''
             INSERT INTO funcionarios (nome, cargo, salario, horas_comp, insalubridade, beneficios, qtd_filhos, 
             observacoes, data_admissao, mes_ref, v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, 
             reflexo_13_ferias, salario_familia, inss, irrf, vt, adiantamento_valor, total_descontos, liquido,
-            banco_horas, turno, hora_entrada, adicional_noturno, regime_he)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            banco_horas, turno, hora_entrada, adicional_noturno, regime_he, departamento)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, data_admissao, mes_ref, 
               v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, reflexo_13_ferias, total_salario_familia, inss, irrf, vt, 
-              valor_adiantamento, total_descontos_final, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, regime_he))
+              valor_adiantamento, total_descontos_final, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, regime_he, departamento))
         
     conexao.commit()
     conexao.close()
