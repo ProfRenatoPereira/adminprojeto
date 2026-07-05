@@ -1,14 +1,13 @@
 from flask import Flask, render_template, request, jsonify
-from datetime import datetime
 import sqlite3
 import os
 
 app = Flask(__name__)
-DB_FILE = 'folha_v2.db'
+DB_FILE = 'folha_v3.db' # Força a criação da base de dados expandida limpa
+
 def iniciar_banco():
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
-    # Tabela principal contendo a nova coluna de departamento
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS funcionarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,17 +20,15 @@ def iniciar_banco():
             departamento TEXT
         )
     ''')
-    # Tabela dinâmica de cargos customizados
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS cargos_custom (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome_cargo TEXT UNIQUE
+            id INTEGER PRIMARY KEY AUTOINCREMENT, nome_cargo TEXT UNIQUE
         )
     ''')
     cursor.execute("SELECT COUNT(*) FROM cargos_custom")
     if cursor.fetchone() == 0:
-        cargos_padrao = [("Diretoria",), ("Gerência",), ("Analista",), ("Operacional",)]
-        cursor.executemany("INSERT INTO cargos_custom (nome_cargo) VALUES (?)", cargos_padrao)
+        cargos = [("Diretoria",), ("Gerência",), ("Analista",), ("Operacional",)]
+        cursor.executemany("INSERT INTO cargos_custom (nome_cargo) VALUES (?)", cargos)
     conexao.commit()
     conexao.close()
 
@@ -53,18 +50,16 @@ def calcular_irrf(salario_contribuicao, desconto_inss):
 @app.route('/')
 def index():
     return render_template('index.html')
-
-
 @app.route('/api/cargos', methods=['GET', 'POST'])
 def gerenciar_cargos():
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
     if request.method == 'POST':
         dados = request.json
-        novo_cargo = dados.get('nome_cargo', '').strip()
-        if novo_cargo:
+        novo = dados.get('nome_cargo', '').strip()
+        if novo:
             try:
-                cursor.execute('INSERT INTO cargos_custom (nome_cargo) VALUES (?)', (novo_cargo,))
+                cursor.execute('INSERT INTO cargos_custom (nome_cargo) VALUES (?)', (novo,))
                 conexao.commit()
             except sqlite3.IntegrityError: pass
         conexao.close()
@@ -93,7 +88,6 @@ def demitir_funcionario(id_func):
     conexao.commit()
     conexao.close()
     return jsonify({'status': 'removido'})
-
 
 @app.route('/api/calcular', methods=['POST'])
 def calcular_e_salvar():
@@ -126,8 +120,6 @@ def calcular_e_salvar():
     descontar_vt = dados.get('vt', 'nao') == 'sim'
     
     valor_hora = salario_base / horas_comp
-    
-    # Didático: Adicional Noturno Automatizado (+20% conforme Art. 73 CLT)
     adicional_noturno = 60 * (valor_hora * 0.20) if turno == 'noturno' else 0
     
     v_he_semana = he_semana * (valor_hora * 1.25)
@@ -139,14 +131,10 @@ def calcular_e_salvar():
         total_he_ganho = v_he_semana + v_he_sabado + v_he_domingo
         reflexo_13_ferias = total_he_ganho * (2.0 / 12.0)
     else:
-        # Se for acumulado no Banco de Horas, guarda o saldo de horas extras e zera o financeiro da folha atual
         banco_horas = he_semana + he_sabado + he_domingo
-        total_he_ganho = 0
-        reflexo_13_ferias = 0
-        v_he_semana, v_he_sabado, v_he_domingo = 0, 0, 0
+        total_he_ganho, reflexo_13_ferias, v_he_semana, v_he_sabado, v_he_domingo = 0, 0, 0, 0, 0
         
     total_salario_familia = qtd_filhos * 62.04 if (salario_base + adicional_noturno) <= 1819.26 and qtd_filhos > 0 else 0
-    
     salario_contribuicao = salario_base + total_he_ganho + insalubridade + reflexo_13_ferias + adicional_noturno
     inss = calcular_inss(salario_contribuicao)
     irrf = calcular_irrf(salario_contribuicao, inss)
@@ -154,14 +142,12 @@ def calcular_e_salvar():
     
     proventos_totais = salario_base + beneficios + total_he_ganho + insalubridade + reflexo_13_ferias + total_salario_familia + adicional_noturno
     descontos_totais = inss + irrf + vt + sindicato + plano_saude + plano_odonto + vale_farmacia
-    
     valor_adiantamento = (proventos_totais - descontos_totais) * 0.40 if aplicar_adiantamento else 0
     total_descontos_final = descontos_totais + valor_adiantamento
     liquido_final = proventos_totais - total_descontos_final
     
     conexao = sqlite3.connect(DB_FILE)
     cursor = conexao.cursor()
-    
     if id_func:
         cursor.execute('''
             UPDATE funcionarios SET nome=?, cargo=?, salario=?, horas_comp=?, insalubridade=?, beneficios=?, qtd_filhos=?, 
@@ -181,7 +167,6 @@ def calcular_e_salvar():
         ''', (nome, cargo, salario_base, horas_comp, insalubridade, beneficios, qtd_filhos, observacoes, data_admissao, mes_ref, 
               v_he_semana, v_he_sabado, v_he_domingo, total_he_ganho, reflexo_13_ferias, total_salario_familia, inss, irrf, vt, 
               valor_adiantamento, total_descontos_final, liquido_final, banco_horas, turno, hora_entrada, adicional_noturno, regime_he, departamento))
-        
     conexao.commit()
     conexao.close()
     return jsonify({'status': 'sucesso'})
@@ -191,18 +176,14 @@ def calcular_rescisao():
     dados = request.json
     salario_base = float(dados.get('salario', 0))
     tipo_rescisao = dados.get('tipoRescisao', 'demissao_sem_justa')
-    
     saldo_salario = salario_base * 0.5
     decimo_terceiro = (salario_base / 12) * 6
     ferias_prop = (salario_base / 12) * 6
     terco = ferias_prop / 3
-    
     valor_aviso = salario_base if tipo_rescisao == 'demissao_sem_justa' else 0
     desconto_aviso = salario_base if tipo_rescisao == 'pedido_demissao' else 0
-    
     total_prov = saldo_salario + decimo_terceiro + ferias_prop + terco + valor_aviso
     total_desc = calcular_inss(saldo_salario + decimo_terceiro) + desconto_aviso
-    
     return jsonify({
         'saldoSalario': saldo_salario, 'decimoTerceiroProp': decimo_terceiro, 'feriasProporcionais': ferias_prop,
         'tercoConstitucional': terco, 'valorAvisoPrevio': valor_aviso, 'descontoAviso': desconto_aviso,
@@ -210,7 +191,6 @@ def calcular_rescisao():
     })
 
 iniciar_banco()
-
 if __name__ == '__main__':
     porta = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=porta, debug=True)
