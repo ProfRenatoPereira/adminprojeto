@@ -3,7 +3,6 @@ let funcionarios = [];
 function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
-
 // Disparador automático de leitura ao abrir o sistema
 window.addEventListener('DOMContentLoaded', () => {
     carregarCargosBanco();
