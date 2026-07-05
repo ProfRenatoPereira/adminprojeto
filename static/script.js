@@ -35,6 +35,9 @@ async function carregarDadosBanco() {
 
 
 
+
+
+
 async function adicionarCargoNovo() {
     const inputCargo = document.getElementById('novo_cargo_input');
     const nomeCargo = inputCargo.value.trim();
@@ -99,6 +102,10 @@ async function deletarFuncionario(id) {
     await fetch('/api/funcionarios/' + id, { method: 'DELETE' });
     carregarDadosBanco();
 }
+
+
+
+
 
 
 function limparCamposTela() {
