@@ -48,6 +48,8 @@ async function carregarCargosBanco() {
         }
     }
 }
+
+
 async function carregarDadosBanco() {
     try {
         const resposta = await fetch('/api/funcionarios');
@@ -119,6 +121,7 @@ async function adicionarFuncionario() {
     } catch(e) { console.error("Erro ao enviar funcionário para API"); }
 }
 
+
 function limparCamposTela() {
     document.getElementById('func_id_edicao').value = '';
     document.getElementById('nome').value = '';
@@ -139,8 +142,9 @@ function limparCamposTela() {
     const btn = document.getElementById('btn_contratar');
     if (btn) btn.innerText = 'Contratar Profissional';
 }
+
 function carregarFuncionarioParaEdicao(id, nome, cargo, salario, horas, regime, insal, benef, filhos, obs, data, turno, entrada, depto) {
-    document.getElementById('func_id_id_edicao').value = id;
+    document.getElementById('func_id_edicao').value = id;
     document.getElementById('nome').value = nome;
     document.getElementById('cargo').value = cargo;
     document.getElementById('salario').value = salario;
@@ -186,6 +190,7 @@ function actualizarDashboard() {
     renderizarGraficosNativos(totalLiquido, totalDescontos);
 }
 
+
 function renderizarGraficosNativos(liquido, descontos) {
     const total = liquido + descontos;
     const pizza = document.getElementById('nativePizza');
@@ -215,6 +220,7 @@ function renderizarGraficosNativos(liquido, descontos) {
         });
     }
 }
+
 function renderizarTabela() {
     const corpo = document.getElementById('tabela_corpo');
     if (!corpo) return;
@@ -308,3 +314,4 @@ async function deletarFuncionario(id) {
     } catch(e) { console.error("Erro na API ao deletar"); }
     await carregarDadosBanco();
 }
+
