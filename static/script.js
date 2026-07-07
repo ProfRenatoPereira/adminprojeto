@@ -64,7 +64,7 @@ async function carregarDadosBanco() {
 
 async function adicionarCargoNovo() {
     const inputCargo = document.getElementById('novo_cargo_input');
-    const nomeCargo = inputCargo.value.trim();
+    const nomeCargo = inputCargo ? inputCargo.value.trim() : '';
     if (!nomeCargo) { alert('Digite o nome do novo cargo.'); return; }
     try {
         await fetch('/api/cargos', {
@@ -73,39 +73,46 @@ async function adicionarCargoNovo() {
             body: JSON.stringify({ nome_cargo: nomeCargo })
         });
     } catch(e) { console.error("Erro ao salvar cargo na API"); }
-    inputCargo.value = '';
+    if (inputCargo) inputCargo.value = '';
     await carregarCargosBanco();
 }
 
 async function adicionarFuncionario() {
-    const nome = document.getElementById('nome').value.trim();
+    // Função auxiliar com interrogação (?) para nunca travar o console se o ID mudar
+    const pegarValor = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+    };
+
+    const nome = pegarValor('nome').trim();
     if (!nome) { alert('Insira o nome do profissional.'); return; }
     
+    // Mapeamento dinâmico testando todas as variações de IDs do seu HTML
     const dados = {
-        id: document.getElementById('func_id_edicao').value || '',
-        nome,
-        cargo: document.getElementById('cargo').value,
-        salario: parseFloat(document.getElementById('salario').value) || 0,
-        horasComp: parseFloat(document.getElementById('horas_comp').value) || 220,
-        insalubridade: parseFloat(document.getElementById('insalubridade').value) || 0,
-        beneficios: parseFloat(document.getElementById('beneficios').value) || 0,
-        heSemana: parseFloat(document.getElementById('he_semana').value) || 0,
-        heSabado: parseFloat(document.getElementById('he_sabado').value) || 0,
-        heDomingo: parseFloat(document.getElementById('he_domingo').value) || 0,
-        planoSaude: parseFloat(document.getElementById('plano_saude').value) || 0,
-        planoOdonto: parseFloat(document.getElementById('plano_odonto').value) || 0,
-        valeFarmacia: parseFloat(document.getElementById('vale_farmacia').value) || 0,
-        sindicato: parseFloat(document.getElementById('sindicato').value) || 0,
-        adiantamento: document.getElementById('adiantamento').value,
-        vt: document.getElementById('vt_desconto').value,
-        qtdFilhos: parseInt(document.getElementById('qtd_filhos').value) || 0,
-        mesRef: document.getElementById('mes_referencia').value,
-        regimeHe: document.getElementById('regime_he').value,
-        turno: document.getElementById('turno').value,
-        horaEntrada: document.getElementById('hora_entrada').value,
-        departamento: document.getElementById('departamento').value,
-        observacoes: document.getElementById('observacoes').value.trim(),
-        dataAdmissao: document.getElementById('data_admissao').value
+        id: pegarValor('func_id_edicao') || pegarValor('funcIdEdicao'),
+        nome: nome,
+        cargo: pegarValor('cargo'),
+        salario: parseFloat(pegarValor('salario')) || 0,
+        horasComp: parseFloat(pegarValor('horas_comp')) || parseFloat(pegarValor('horasComp')) || 220,
+        insalubridade: parseFloat(pegarValor('insalubridade')) || 0,
+        beneficios: parseFloat(pegarValor('beneficios')) || 0,
+        heSemana: parseFloat(pegarValor('he_semana')) || parseFloat(pegarValor('heSemana')) || 0,
+        heSabado: parseFloat(pegarValor('he_sabado')) || parseFloat(pegarValor('heSabado')) || 0,
+        heDomingo: parseFloat(pegarValor('he_domingo')) || parseFloat(pegarValor('heDomingo')) || 0,
+        planoSaude: parseFloat(pegarValor('plano_saude')) || parseFloat(pegarValor('planoSaude')) || 0,
+        planoOdonto: parseFloat(pegarValor('plano_odonto')) || parseFloat(pegarValor('planoOdonto')) || 0,
+        valeFarmacia: parseFloat(pegarValor('vale_farmacia')) || parseFloat(pegarValor('valeFarmacia')) || 0,
+        sindicato: parseFloat(pegarValor('sindicato')) || 0,
+        adiantamento: pegarValor('adiantamento'),
+        vt: pegarValor('vt_desconto') || pegarValor('vtDesconto') || pegarValor('vt'),
+        qtdFilhos: parseInt(pegarValor('qtd_filhos')) || parseInt(pegarValor('qtdFilhos')) || 0,
+        mesRef: pegarValor('mes_referencia') || pegarValor('mesReferencia') || pegarValor('mes_ref'),
+        regimeHe: pegarValor('regime_he') || pegarValor('regimeHe'),
+        turno: pegarValor('turno'),
+        horaEntrada: pegarValor('hora_entrada') || pegarValor('horaEntrada'),
+        departamento: pegarValor('departamento'),
+        observacoes: pegarValor('observacoes'),
+        dataAdmissao: pegarValor('data_admissao') || pegarValor('dataAdmissao')
     };
 
     try {
