@@ -122,57 +122,65 @@ async function adicionarFuncionario() {
 }
 
 
+
+
 function limparCamposTela() {
-    document.getElementById('func_id_edicao').value = '';
-    document.getElementById('nome').value = '';
-    document.getElementById('salario').value = '3500';
-    document.getElementById('horas_comp').value = '220';
-    document.getElementById('regime_he').value = 'pagar';
-    document.getElementById('beneficios').value = '500';
-    document.getElementById('qtd_filhos').value = '0';
-    document.getElementById('observacoes').value = '';
-    document.getElementById('he_semana').value = '0';
-    document.getElementById('he_sabado').value = '0';
-    document.getElementById('he_domingo').value = '0';
-    document.getElementById('turno').value = 'diurno';
-    document.getElementById('hora_entrada').value = '08:00';
-    document.getElementById('adiantamento').value = 'nao';
-    document.getElementById('vt_desconto').value = 'nao';
-    document.getElementById('novo_aumento_salarial').value = '0';
+    if (document.getElementById('func_id_edicao')) document.getElementById('func_id_edicao').value = '';
+    if (document.getElementById('nome')) document.getElementById('nome').value = '';
+    if (document.getElementById('salario')) document.getElementById('salario').value = '3500';
+    if (document.getElementById('horas_comp')) document.getElementById('horas_comp').value = '220';
+    if (document.getElementById('regime_he')) document.getElementById('regime_he').value = 'pagar';
+    if (document.getElementById('beneficios')) document.getElementById('beneficios').value = '500';
+    if (document.getElementById('qtd_filhos')) document.getElementById('qtd_filhos').value = '0';
+    if (document.getElementById('observacoes')) document.getElementById('observacoes').value = '';
+    if (document.getElementById('he_semana')) document.getElementById('he_semana').value = '0';
+    if (document.getElementById('he_sabado')) document.getElementById('he_sabado').value = '0';
+    if (document.getElementById('he_domingo')) document.getElementById('he_domingo').value = '0';
+    if (document.getElementById('turno')) document.getElementById('turno').value = 'diurno';
+    if (document.getElementById('hora_entrada')) document.getElementById('hora_entrada').value = '08:00';
+    if (document.getElementById('adiantamento')) document.getElementById('adiantamento').value = 'nao';
+    if (document.getElementById('vt_desconto')) document.getElementById('vt_desconto').value = 'nao';
+    if (document.getElementById('novo_aumento_salarial')) document.getElementById('novo_aumento_salarial').value = '0';
     const btn = document.getElementById('btn_contratar');
     if (btn) btn.innerText = 'Contratar Profissional';
 }
 
 function carregarFuncionarioParaEdicao(id, nome, cargo, salario, horas, regime, insal, benef, filhos, obs, data, turno, entrada, depto) {
-    document.getElementById('func_id_edicao').value = id;
-    document.getElementById('nome').value = nome;
-    document.getElementById('cargo').value = cargo;
-    document.getElementById('salario').value = salario;
-    document.getElementById('horas_comp').value = horas;
-    document.getElementById('regime_he').value = regime;
-    document.getElementById('beneficios').value = benef;
-    document.getElementById('qtd_filhos').value = filhos;
-    document.getElementById('observacoes').value = obs;
-    document.getElementById('data_admissao').value = data;
-    document.getElementById('turno').value = turno;
-    document.getElementById('hora_entrada').value = entrada;
-    document.getElementById('departamento').value = depto;
+    if (document.getElementById('func_id_edicao')) document.getElementById('func_id_edicao').value = id;
+    if (document.getElementById('nome')) document.getElementById('nome').value = nome;
+    if (document.getElementById('cargo')) document.getElementById('cargo').value = cargo;
+    if (document.getElementById('salario')) document.getElementById('salario').value = salario;
+    if (document.getElementById('horas_comp')) document.getElementById('horas_comp').value = horas;
+    if (document.getElementById('regime_he')) document.getElementById('regime_he').value = regime;
+    if (document.getElementById('beneficios')) document.getElementById('beneficios').value = benef;
+    if (document.getElementById('qtd_filhos')) document.getElementById('qtd_filhos').value = filhos;
+    if (document.getElementById('observacoes')) document.getElementById('observacoes').value = obs;
+    if (document.getElementById('data_admissao')) document.getElementById('data_admissao').value = data;
+    if (document.getElementById('turno')) document.getElementById('turno').value = turno;
+    if (document.getElementById('hora_entrada')) document.getElementById('hora_entrada').value = entrada;
+    if (document.getElementById('departamento')) document.getElementById('departamento').value = depto;
     const btn = document.getElementById('btn_contratar');
     if (btn) btn.innerText = 'Modo Edição Ativo';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function salvarAlteracoesFuncionario() {
-    const id = document.getElementById('func_id_edicao').value;
+    const elId = document.getElementById('func_id_edicao');
+    const id = elId ? elId.value : '';
     if (!id) { alert('Selecione um funcionário clicando no nome dele primeiro.'); return; }
-    const valorPromocao = parseFloat(document.getElementById('novo_aumento_salarial').value) || 0;
-    if (valorPromocao > 0) { document.getElementById('salario').value = valorPromocao; }
+    
+    const elPromocao = document.getElementById('novo_aumento_salarial');
+    const valorPromocao = elPromocao ? (parseFloat(elPromocao.value) || 0) : 0;
+    if (valorPromocao > 0 && document.getElementById('salario')) { 
+        document.getElementById('salario').value = valorPromocao; 
+    }
     
     await adicionarFuncionario(); 
 }
 
 function actualizarDashboard() {
-    const receita = parseFloat(document.getElementById('receita_empresa').value) || 0;
+    const elReceita = document.getElementById('receita_empresa');
+    const receita = elReceita ? (parseFloat(elReceita.value) || 0) : 0;
     let totalBruto = 0, totalDescontos = 0, totalLiquido = 0;
     funcionarios.forEach(f => {
         totalBruto += f.salario + (f.total_he_ganho || 0) + (f.insalubridade || 0) + (f.reflexo_13_ferias || 0) + (f.adicional_noturno || 0);
@@ -181,14 +189,22 @@ function actualizarDashboard() {
     });
     let custoTotal = funcionarios.reduce((acc, f) => acc + f.salario + (f.beneficios || 0) + (f.total_he_ganho || 0) + (f.adicional_noturno || 0), 0);
     let saldoFinal = receita - custoTotal;
-    document.getElementById('dash_total_func').innerText = funcionarios.length + ' / ' + document.getElementById('limite_func').value;
-    document.getElementById('dash_custo_bruto').innerText = formatarMoeda(totalBruto);
-    document.getElementById('dash_total_descontos').innerText = formatarMoeda(totalDescontos);
-    document.getElementById('dash_folha_liquida').innerText = formatarMoeda(totalLiquido);
-    document.getElementById('dash_saldo_empresa').innerText = formatarMoeda(saldoFinal);
-    document.getElementById('card_balanco').className = saldoFinal < 0 ? 'metric negative' : 'metric';
+    
+    const elTotalFunc = document.getElementById('dash_total_func');
+    const elLimite = document.getElementById('limite_func');
+    if (elTotalFunc && elLimite) elTotalFunc.innerText = funcionarios.length + ' / ' + elLimite.value;
+    
+    if (document.getElementById('dash_custo_bruto')) document.getElementById('dash_custo_bruto').innerText = formatarMoeda(totalBruto);
+    if (document.getElementById('dash_total_descontos')) document.getElementById('dash_total_descontos').innerText = formatarMoeda(totalDescontos);
+    if (document.getElementById('dash_folha_liquida')) document.getElementById('dash_folha_liquida').innerText = formatarMoeda(totalLiquido);
+    if (document.getElementById('dash_saldo_empresa')) document.getElementById('dash_saldo_empresa').innerText = formatarMoeda(saldoFinal);
+    
+    const cardBalanco = document.getElementById('card_balanco');
+    if (cardBalanco) cardBalanco.className = saldoFinal < 0 ? 'metric negative' : 'metric';
     renderizarGraficosNativos(totalLiquido, totalDescontos);
 }
+
+
 
 
 function renderizarGraficosNativos(liquido, descontos) {
