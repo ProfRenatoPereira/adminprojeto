@@ -3,7 +3,7 @@ import sqlite3
 import os
 
 app = Flask(__name__)
-DB_FILE = 'folha_v3.db' # Força a criação da base de dados expandida limpa
+DB_FILE = 'folha_v3.db'  # Força a criação da base de dados expandida limpa
 
 def iniciar_banco():
     conexao = sqlite3.connect(DB_FILE)
@@ -50,6 +50,7 @@ def calcular_irrf(salario_contribuicao, desconto_inss):
 @app.route('/')
 def index():
     return render_template('index.html')
+
 @app.route('/api/cargos', methods=['GET', 'POST'])
 def gerenciar_cargos():
     conexao = sqlite3.connect(DB_FILE)
@@ -111,7 +112,6 @@ def calcular_e_salvar():
     he_semana = float(dados.get('heSemana', 0))
     he_sabado = float(dados.get('heSabado', 0))
     he_domingo = float(dados.get('heDomingo', 0))
-    
     sindicato = float(dados.get('sindicato', 0))
     plano_saude = float(dados.get('planoSaude', 0))
     plano_odonto = float(dados.get('planoOdonto', 0))
@@ -120,7 +120,7 @@ def calcular_e_salvar():
     descontar_vt = dados.get('vt', 'nao') == 'sim'
     
     valor_hora = salario_base / horas_comp
-    adicional_noturno = 60 * (valor_hora * 0.20) if turno == 'noturno' else 0
+    adicional_noturno = salario_base * 0.20 if turno == 'noturno' else 0
     
     v_he_semana = he_semana * (valor_hora * 1.25)
     v_he_sabado = he_sabado * (valor_hora * 1.50)
