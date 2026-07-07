@@ -46,7 +46,6 @@ header p {
     color: #475569;
 }
 
-
 .grid-config { 
     display: grid; 
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
@@ -90,6 +89,7 @@ input, select {
     font-size: 0.9rem; 
     background: #fff;
 }
+
 
 button { 
     background: var(--primary); 
@@ -143,7 +143,6 @@ button.btn-print:hover { background: #334155; }
 
 .metric.negative h2 { color: var(--danger); }
 
-
 table { 
     width: 100%; 
     border-collapse: collapse; 
@@ -187,8 +186,7 @@ th {
 .btn-delete:hover { background: #fef2f2; }
 
 #print-area { display: none; }
-
-/* MECANISMO DE IMPRESSÃO PROFISSIONAL COM SELETOR DE ESCOPO */
+/* MECANISMO DE IMPRESSÃO PROFISSIONAL CORRIGIDO */
 @media print {
     body:not(.imprimindo-balanco) .container { 
         visibility: visible !important; 
@@ -203,8 +201,15 @@ th {
     body.imprimindo-balanco .container { 
         display: none !important; 
     }
-    body.imprimindo-balanco #print-area, body.imprimindo-balanco #print-area * { 
+    body.imprimindo-balanco #print-area, 
+    body.imprimindo-balanco #print-area * { 
         visibility: visible !important; 
     }
-    #print-area { display: block; position: absolute; left: 0; top: 0; width: 100%; }
+    #print-area { 
+        display: block !important; 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+    }
 }
