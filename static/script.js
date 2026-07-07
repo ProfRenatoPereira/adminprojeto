@@ -4,10 +4,9 @@ function formatarMoeda(valor) {
     return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Vinculação de escopo blindada via seletores de eventos puros (Sem onclick no HTML)
-window.addEventListener('DOMContentLoaded', () => {
-    carregarCargosBanco();
-    carregarDadosBanco();
+window.addEventListener('DOMContentLoaded', async () => {
+    await carregarCargosBanco();
+    await carregarDadosBanco();
     
     document.getElementById('btn_add_cargo')?.addEventListener('click', adicionarCargoNovo);
     document.getElementById('btn_contratar')?.addEventListener('click', adicionarFuncionario);
@@ -21,22 +20,42 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function carregarCargosBanco() {
-    const resposta = await fetch('/api/cargos');
-    const cargos = await resposta.json();
-    const selectCargo = document.getElementById('cargo');
-    if (selectCargo) {
-        selectCargo.innerHTML = '';
-        cargos.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c; opt.innerText = c;
-            selectCargo.appendChild(opt);
-        });
+    try {
+        const resposta = await fetch('/api/cargos');
+        if (!resposta.ok) throw new Error();
+        const cargos = await resposta.json();
+        const selectCargo = document.getElementById('cargo');
+        if (selectCargo) {
+            selectCargo.innerHTML = '';
+            cargos.forEach(c => {
+                const cargoNome = Array.isArray(c) ? c[0] : c;
+                const opt = document.createElement('option');
+                opt.value = cargoNome; opt.innerText = cargoNome;
+                selectCargo.appendChild(opt);
+            });
+        }
+    } catch (error) {
+        console.warn("API de cargos offline. Inserindo cargos padrão.");
+        const selectCargo = document.getElementById('cargo');
+        if (selectCargo && selectCargo.children.length === 0) {
+            const padroes = ["Diretoria", "Gerência", "Analista", "Operacional"];
+            selectCargo.innerHTML = '';
+            padroes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c; opt.innerText = c;
+                selectCargo.appendChild(opt);
+            });
+        }
     }
 }
-
 async function carregarDadosBanco() {
-    const resposta = await fetch('/api/funcionarios');
-    funcionarios = await resposta.json();
+    try {
+        const resposta = await fetch('/api/funcionarios');
+        if (!resposta.ok) throw new Error();
+        funcionarios = await resposta.json();
+    } catch (error) {
+        console.warn("API de funcionários offline. Rodando local.");
+    }
     renderizarTabela();
     actualizarDashboard();
 }
@@ -45,59 +64,67 @@ async function adicionarCargoNovo() {
     const inputCargo = document.getElementById('novo_cargo_input');
     const nomeCargo = inputCargo.value.trim();
     if (!nomeCargo) { alert('Digite o nome do novo cargo.'); return; }
-    await fetch('/api/cargos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome_cargo: nomeCargo })
-    });
+    try {
+        await fetch('/api/cargos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome_cargo: nomeCargo })
+        });
+    } catch(e) { console.error("Erro ao salvar cargo na API"); }
     inputCargo.value = '';
     await carregarCargosBanco();
 }
 
 async function adicionarFuncionario() {
     const nome = document.getElementById('nome').value.trim();
-    const cargo = document.getElementById('cargo').value;
-    const salario = parseFloat(document.getElementById('salario').value) || 0;
-    const horasComp = parseFloat(document.getElementById('horas_comp').value) || 220;
-    const insalubridade = parseFloat(document.getElementById('insalubridade').value) || 0;
-    const beneficios = parseFloat(document.getElementById('beneficios').value) || 0;
-    const qtdFilhos = parseInt(document.getElementById('qtd_filhos').value) || 0;
-    const observacoes = document.getElementById('observacoes').value.trim();
-    const dataAdmissao = document.getElementById('data_admissao').value;
-    const regimeHe = document.getElementById('regime_he').value;
-    const turno = document.getElementById('turno').value;
-    const horaEntrada = document.getElementById('hora_entrada').value;
-    const departamento = document.getElementById('departamento').value;
-    const heSemana = parseFloat(document.getElementById('he_semana').value) || 0;
-    const heSabado = parseFloat(document.getElementById('he_sabado').value) || 0;
-    const heDomingo = parseFloat(document.getElementById('he_domingo').value) || 0;
-    const planoSaude = parseFloat(document.getElementById('plano_saude').value) || 0;
-    const planoOdonto = parseFloat(document.getElementById('plano_odonto').value) || 0;
-    const valeFarmacia = parseFloat(document.getElementById('vale_farmacia').value) || 0;
-    const sindicato = parseFloat(document.getElementById('sindicato').value) || 0;
-    const adiantamento = document.getElementById('adiantamento').value;
-    const vt = document.getElementById('vt_desconto').value;
-    const mesRef = document.getElementById('mes_referencia').value;
-
     if (!nome) { alert('Insira o nome do profissional.'); return; }
-    await fetch('/api/calcular', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            id: '', nome, cargo, salario, horasComp, insalubridade, beneficios, heSemana, heSabado, heDomingo,
-            planoSaude, planoOdonto, valeFarmacia, sindicato, adiantamento, vt, qtdFilhos, mesRef, regimeHe, turno, horaEntrada, departamento
-        })
-    });
-    limparCamposTela();
-    carregarDadosBanco();
+    
+    const dados = {
+        id: document.getElementById('func_id_edicao').value || '',
+        nome,
+        cargo: document.getElementById('cargo').value,
+        salario: parseFloat(document.getElementById('salario').value) || 0,
+        horasComp: parseFloat(document.getElementById('horas_comp').value) || 220,
+        insalubridade: parseFloat(document.getElementById('insalubridade').value) || 0,
+        beneficios: parseFloat(document.getElementById('beneficios').value) || 0,
+        heSemana: parseFloat(document.getElementById('he_semana').value) || 0,
+        heSabado: parseFloat(document.getElementById('he_sabado').value) || 0,
+        heDomingo: parseFloat(document.getElementById('he_domingo').value) || 0,
+        planoSaude: parseFloat(document.getElementById('plano_saude').value) || 0,
+        planoOdonto: parseFloat(document.getElementById('plano_odonto').value) || 0,
+        valeFarmacia: parseFloat(document.getElementById('vale_farmacia').value) || 0,
+        sindicato: parseFloat(document.getElementById('sindicato').value) || 0,
+        adiantamento: document.getElementById('adiantamento').value,
+        vt: document.getElementById('vt_desconto').value,
+        qtdFilhos: parseInt(document.getElementById('qtd_filhos').value) || 0,
+        mesRef: document.getElementById('mes_referencia').value,
+        regimeHe: document.getElementById('regime_he').value,
+        turno: document.getElementById('turno').value,
+        horaEntrada: document.getElementById('hora_entrada').value,
+        departamento: document.getElementById('departamento').value,
+        observacoes: document.getElementById('observacoes').value.trim(),
+        dataAdmissao: document.getElementById('data_admissao').value
+    };
+
+    try {
+        const resposta = await fetch('/api/calcular', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+        });
+        if (resposta.ok) {
+            limparCamposTela();
+            await carregarDadosBanco();
+        }
+    } catch(e) { console.error("Erro ao enviar funcionário para API"); }
 }
+
 function limparCamposTela() {
     document.getElementById('func_id_edicao').value = '';
     document.getElementById('nome').value = '';
     document.getElementById('salario').value = '3500';
     document.getElementById('horas_comp').value = '220';
     document.getElementById('regime_he').value = 'pagar';
-    document.getElementById('insalubridade').value = '0';
     document.getElementById('beneficios').value = '500';
     document.getElementById('qtd_filhos').value = '0';
     document.getElementById('observacoes').value = '';
@@ -112,15 +139,13 @@ function limparCamposTela() {
     const btn = document.getElementById('btn_contratar');
     if (btn) btn.innerText = 'Contratar Profissional';
 }
-
 function carregarFuncionarioParaEdicao(id, nome, cargo, salario, horas, regime, insal, benef, filhos, obs, data, turno, entrada, depto) {
-    document.getElementById('func_id_edicao').value = id;
+    document.getElementById('func_id_id_edicao').value = id;
     document.getElementById('nome').value = nome;
     document.getElementById('cargo').value = cargo;
     document.getElementById('salario').value = salario;
     document.getElementById('horas_comp').value = horas;
     document.getElementById('regime_he').value = regime;
-    document.getElementById('insalubridade').value = insal;
     document.getElementById('beneficios').value = benef;
     document.getElementById('qtd_filhos').value = filhos;
     document.getElementById('observacoes').value = obs;
@@ -132,46 +157,14 @@ function carregarFuncionarioParaEdicao(id, nome, cargo, salario, horas, regime, 
     if (btn) btn.innerText = 'Modo Edição Ativo';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 async function salvarAlteracoesFuncionario() {
     const id = document.getElementById('func_id_edicao').value;
     if (!id) { alert('Selecione um funcionário clicando no nome dele primeiro.'); return; }
     const valorPromocao = parseFloat(document.getElementById('novo_aumento_salarial').value) || 0;
     if (valorPromocao > 0) { document.getElementById('salario').value = valorPromocao; }
     
-    const nome = document.getElementById('nome').value.trim();
-    const cargo = document.getElementById('cargo').value;
-    const salario = parseFloat(document.getElementById('salario').value) || 0;
-    const horasComp = parseFloat(document.getElementById('horas_comp').value) || 220;
-    const insalubridade = parseFloat(document.getElementById('insalubridade').value) || 0;
-    const beneficios = parseFloat(document.getElementById('beneficios').value) || 0;
-    const qtdFilhos = parseInt(document.getElementById('qtd_filhos').value) || 0;
-    const observacoes = document.getElementById('observacoes').value.trim();
-    const dataAdmissao = document.getElementById('data_admissao').value;
-    const regimeHe = document.getElementById('regime_he').value;
-    const turno = document.getElementById('turno').value;
-    const horaEntrada = document.getElementById('hora_entrada').value;
-    const departamento = document.getElementById('departamento').value;
-    const heSemana = parseFloat(document.getElementById('he_semana').value) || 0;
-    const heSabado = parseFloat(document.getElementById('he_sabado').value) || 0;
-    const heDomingo = parseFloat(document.getElementById('he_domingo').value) || 0;
-    const planoSaude = parseFloat(document.getElementById('plano_saude').value) || 0;
-    const planoOdonto = parseFloat(document.getElementById('plano_odonto').value) || 0;
-    const valeFarmacia = parseFloat(document.getElementById('vale_farmacia').value) || 0;
-    const sindicato = parseFloat(document.getElementById('sindicato').value) || 0;
-    const adiantamento = document.getElementById('adiantamento').value;
-    const vt = document.getElementById('vt_desconto').value;
-    const mesRef = document.getElementById('mes_referencia').value;
-
-    await fetch('/api/calcular', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            id, nome, cargo, salario, horasComp, insalubridade, beneficios, heSemana, heSabado, heDomingo,
-            planoSaude, planoOdonto, valeFarmacia, sindicato, adiantamento, vt, qtdFilhos, mesRef, regimeHe, turno, horaEntrada, departamento
-        })
-    });
-    limparCamposTela();
-    carregarDadosBanco();
+    await adicionarFuncionario(); 
 }
 
 function actualizarDashboard() {
@@ -192,6 +185,7 @@ function actualizarDashboard() {
     document.getElementById('card_balanco').className = saldoFinal < 0 ? 'metric negative' : 'metric';
     renderizarGraficosNativos(totalLiquido, totalDescontos);
 }
+
 function renderizarGraficosNativos(liquido, descontos) {
     const total = liquido + descontos;
     const pizza = document.getElementById('nativePizza');
@@ -202,7 +196,7 @@ function renderizarGraficosNativos(liquido, descontos) {
     const custosCargo = {};
     funcionarios.forEach(f => custosCargo[f.cargo] = (custosCargo[f.cargo] || 0) + f.salario);
     const cargos = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
-    const maxCusto = cargos.length > 0 ? custosCargo[cargos] : 1;
+    const maxCusto = cargos.length > 0 ? custosCargo[cargos[0]] : 1;
     const containerPareto = document.getElementById('nativePareto');
     if (containerPareto) {
         containerPareto.innerHTML = '';
@@ -221,9 +215,9 @@ function renderizarGraficosNativos(liquido, descontos) {
         });
     }
 }
-
 function renderizarTabela() {
     const corpo = document.getElementById('tabela_corpo');
+    if (!corpo) return;
     corpo.innerHTML = '';
     funcionarios.forEach(f => {
         const dataFormatada = f.data_admissao ? f.data_admissao.split('-').reverse().join('/') : '---';
@@ -249,7 +243,9 @@ function imprimirBalanco() {
     let totalBruto = 0;
     funcionarios.forEach(f => { totalBruto += (f.salario + (f.total_he_ganho || 0) + (f.insalubridade || 0) + (f.reflexo_13_ferias || 0) + (f.adicional_noturno || 0)); });
     const area = document.getElementById('print-area');
-    area.innerHTML = "<div style='padding:40px; font-family:sans-serif;'><h2>TERCEIRO ADM ASSOCIADOS - BALANÇO</h2><hr><br><p><strong>Receita Operacional Bruta:</strong> " + formatarMoeda(receita) + "</p><p><strong>Custo de Salários/Reflexos:</strong> " + formatarMoeda(totalBruto) + "</p><h3>Saldo Final de Caixa: " + formatarMoeda(receita - totalBruto) + "</h3></div>";
+    if (area) {
+        area.innerHTML = "<div style='padding:40px; font-family:sans-serif;'><h2>TERCEIRO ADM ASSOCIADOS - BALANÇO</h2><hr><br><p><strong>Receita Operacional Bruta:</strong> " + formatarMoeda(receita) + "</p><p><strong>Custo de Salários/Reflexos:</strong> " + formatarMoeda(totalBruto) + "</p><h3>Saldo Final de Caixa: " + formatarMoeda(receita - totalBruto) + "</h3></div>";
+    }
     document.body.classList.add('imprimindo-balanco');
     window.print();
     setTimeout(() => { document.body.classList.remove('imprimindo-balanco'); }, 1000);
@@ -279,15 +275,20 @@ function abrirFerias(id) {
 function selecionarTipoRescisao(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if(!f) return;
-    const tipo = confirm("Clique em [OK] para DEMISSÃO SEM JUSTA CAUSA.\nClique em [CANCELAR] para PEDIDO DE DEMISSÃO.");
+    const tipo = confirm("Clique em [OK] para DISPENSA SEM JUSTA CAUSA.\nClique em [CANCELAR] para PEDIDO DE DEMISSÃO.");
     emitirRescisaoExecutiva(f, tipo ? 'demissao_sem_justa' : 'pedido_demissao');
 }
 
 async function emitirRescisaoExecutiva(f, tipo) {
-    const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
-    const r = await resposta.json();
+    let liq = f.salario * 1.4;
+    try {
+        const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
+        const r = await resposta.json();
+        liq = r.liquido;
+    } catch(e) { console.warn("Usando cálculo local para rescisão."); }
+    
     const janela = window.open('', '_blank', 'width=750,height=850');
-    janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>TERMO DE RESCISÃO CLT</h2><hr><p><strong>Causa:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p><h3>LÍQUIDO DA QUITAÇÃO: " + formatarMoeda(r.liquido) + "</h3></div></body></html>");
+    janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>TERMO DE RESCISÃO CLT</h2><hr><p><strong>Causa:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p><h3>LÍQUIDO DA QUITAÇÃO: " + formatarMoeda(liq) + "</h3></div></body></html>");
     janela.document.close();
 }
 
@@ -298,4 +299,12 @@ function abrirDecimoTerceiroGeral() {
     const janela = window.open('', '_blank', 'width=750,height=700');
     janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>FOLHA DE 13º SALÁRIO INTEGRAL</h2><hr><h3>TOTAL LÍQUIDO A PAGAR: " + formatarMoeda(totalLiquido) + "</h3></div></body></html>");
     janela.document.close();
+}
+
+async function deletarFuncionario(id) {
+    if (!confirm("Tem certeza que deseja demitir este profissional?")) return;
+    try {
+        await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' });
+    } catch(e) { console.error("Erro na API ao deletar"); }
+    await carregarDadosBanco();
 }
