@@ -28,7 +28,7 @@ async function carregarCargosBanco() {
         if (selectCargo) {
             selectCargo.innerHTML = '';
             cargos.forEach(c => {
-                const cargoNome = Array.isArray(c) ? c[0] : c;
+                const cargoNome = Array.isArray(c) ? c : c;
                 const opt = document.createElement('option');
                 opt.value = cargoNome; opt.innerText = cargoNome;
                 selectCargo.appendChild(opt);
@@ -48,6 +48,7 @@ async function carregarCargosBanco() {
         }
     }
 }
+
 
 
 async function carregarDadosBanco() {
@@ -78,7 +79,6 @@ async function adicionarCargoNovo() {
 }
 
 async function adicionarFuncionario() {
-    // Função auxiliar com interrogação (?) para nunca travar o console se o ID mudar
     const pegarValor = (id) => {
         const el = document.getElementById(id);
         return el ? el.value : '';
@@ -87,7 +87,6 @@ async function adicionarFuncionario() {
     const nome = pegarValor('nome').trim();
     if (!nome) { alert('Insira o nome do profissional.'); return; }
     
-    // Mapeamento dinâmico testando todas as variações de IDs do seu HTML
     const dados = {
         id: pegarValor('func_id_edicao') || pegarValor('funcIdEdicao'),
         nome: nome,
@@ -127,8 +126,6 @@ async function adicionarFuncionario() {
         }
     } catch(e) { console.error("Erro ao enviar funcionário para API"); }
 }
-
-
 
 
 function limparCamposTela() {
@@ -172,8 +169,7 @@ function carregarFuncionarioParaEdicao(id, nome, cargo, salario, horas, regime, 
 }
 
 async function salvarAlteracoesFuncionario() {
-    const elId = document.getElementById('func_id_edicao');
-    const id = elId ? elId.value : '';
+    const id = document.getElementById('func_id_edicao')?.value;
     if (!id) { alert('Selecione um funcionário clicando no nome dele primeiro.'); return; }
     
     const elPromocao = document.getElementById('novo_aumento_salarial');
@@ -181,7 +177,6 @@ async function salvarAlteracoesFuncionario() {
     if (valorPromocao > 0 && document.getElementById('salario')) { 
         document.getElementById('salario').value = valorPromocao; 
     }
-    
     await adicionarFuncionario(); 
 }
 
@@ -224,22 +219,13 @@ function renderizarGraficosNativos(liquido, descontos) {
     const custosCargo = {};
     funcionarios.forEach(f => custosCargo[f.cargo] = (custosCargo[f.cargo] || 0) + f.salario);
     const cargos = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
-    const maxCusto = cargos.length > 0 ? custosCargo[cargos[0]] : 1;
+    const maxCusto = cargos.length > 0 ? custosCargo[cargos] : 1;
     const containerPareto = document.getElementById('nativePareto');
     if (containerPareto) {
         containerPareto.innerHTML = '';
         cargos.slice(0, 4).forEach(c => {
             const pct = maxCusto > 0 ? (custosCargo[c] / maxCusto) * 100 : 0;
             containerPareto.innerHTML += '<div class="bar-wrapper"><div class="bar-native" style="height: ' + pct + '%">' + pct.toFixed(0) + '%</div><div class="bar-label">' + c + '</div></div>';
-        });
-    }
-    const containerLinear = document.getElementById('nativeLinear');
-    if (containerLinear) {
-        containerLinear.innerHTML = '';
-        const maxBruto = funcionarios.length > 0 ? Math.max(...funcionarios.map(f => f.salario)) : 1;
-        funcionarios.slice(-4).forEach(f => {
-            const pct = maxBruto > 0 ? (f.salario / maxBruto) * 100 : 0;
-            containerLinear.innerHTML += '<div class="linear-row"><div class="linear-name">' + f.nome + '</div><div class="linear-bar-bg"><div class="linear-bar-fill" style="width: ' + pct + '%"></div></div><div class="linear-value" style="color:#1e3a8a">' + formatarMoeda(f.salario) + '</div></div>';
         });
     }
 }
@@ -262,82 +248,114 @@ function renderizarTabela() {
         ].join(',');
 
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td><a onclick="carregarFuncionarioParaEdicao(' + args + ')" style="cursor:pointer; color:var(--primary); text-decoration:underline;"><strong>' + f.nome + '</strong></a><br><small>Admissão: ' + dataFormatada + '</small></td><td>' + f.cargo + '<br><small style="color:#64748b">Dep: ' + deptoRotulo + '</small></td><td><small>Jornada: ' + jTexto + '</small><br><strong>' + turnoRotulo + '</strong></td><td style="color:#16a34a"><strong>' + formatarMoeda(f.liquido) + '</strong></td><td class="actions-cell"><a onclick="abrirContracheque(' + f.id + ')" class="btn-link">📄 Mensal</a><a onclick="abrirFerias(' + f.id + ')" class="btn-link" style="color:#16a34a">🌴 Férias</a><button class="btn-delete" style="background:#0284c7; color:white; border:none; padding:4px 8px; margin-right:5px;" onclick="selecionarTipoRescisao(' + f.id + ')">⚠️ Rescisão</button><button class="btn-delete" onclick="deletarFuncionario(' + f.id + ')">Demitir</button></td>';
+        tr.innerHTML = '<td><a onclick="carregarFuncionarioParaEdicao(' + args + ')" style="cursor:pointer; color:var(--primary); text-decoration:underline;"><strong>' + f.nome + '</strong></a><br><small>Admissão: ' + dataFormatada + '</small></td><td>' + f.cargo + '<br><small style="color:#64748b">Dep: ' + deptoRotulo + '</small></td><td><small>Jornada: ' + jTexto + '</small><br><strong>' + turnoRotulo + '</strong></td><td style="color:#16a34a"><strong>' + formatarMoeda(f.liquido) + '</strong></td><td class="actions-cell"><a onclick="abrirContracheque(' + f.id + ')" class="btn-link">📄 Mensal</a><a onclick="abrirFerias(' + f.id + ')" class="btn-link" style="color:#16a34a">🌴 Férias</a><button class="btn-delete" style="background:#dc2626; color:white; border:none; padding:4px 6px; margin-right:4px; font-size:0.7rem;" onclick="dispararRescisaoImediata(' + f.id + ', \'demissao_sem_justa\')">⚠️ Sem Justa</button><button class="btn-delete" style="background:#f97316; color:white; border:none; padding:4px 6px; margin-right:4px; font-size:0.7rem;" onclick="dispararRescisaoImediata(' + f.id + ', \'pedido_demissao\')">🚪 Pedido</button><button class="btn-delete" style="padding:4px 6px; font-size:0.7rem;" onclick="deletarFuncionario(' + f.id + ')">Demitir</button></td>';
         corpo.appendChild(tr);
     });
 }
 
 function imprimirBalanco() {
-    const receita = parseFloat(document.getElementById('receita_empresa').value) || 0;
-    let totalBruto = 0;
-    funcionarios.forEach(f => { totalBruto += (f.salario + (f.total_he_ganho || 0) + (f.insalubridade || 0) + (f.reflexo_13_ferias || 0) + (f.adicional_noturno || 0)); });
+    const receita = parseFloat(document.getElementById('receita_empresa')?.value) || 0;
+    let totalBruto = 0; funcionarios.forEach(f => { totalBruto += (f.salario + (f.total_he_ganho || 0)); });
     const area = document.getElementById('print-area');
     if (area) {
-        area.innerHTML = "<div style='padding:40px; font-family:sans-serif;'><h2>TERCEIRO ADM ASSOCIADOS - BALANÇO</h2><hr><br><p><strong>Receita Operacional Bruta:</strong> " + formatarMoeda(receita) + "</p><p><strong>Custo de Salários/Reflexos:</strong> " + formatarMoeda(totalBruto) + "</p><h3>Saldo Final de Caixa: " + formatarMoeda(receita - totalBruto) + "</h3></div>";
+        area.innerHTML = "<div style='padding:40px; font-family:sans-serif; text-align:center;'><img src='/static/logo.jpg' style='height:80px; margin-bottom:15px;'><h2>TERCEIRO ADM ASSOCIADOS - BALANÇO DE CAIXA</h2><hr><br><p style='text-align:left;'><strong>Receita Operacional Bruta:</strong> " + formatarMoeda(receita) + "</p><p style='text-align:left;'><strong>Custo de Salários/Reflexos:</strong> " + formatarMoeda(totalBruto) + "</p><br><h3 style='text-align:left;'>Saldo Final de Caixa: " + formatarMoeda(receita - totalBruto) + "</h3></div>";
     }
-    document.body.classList.add('imprimindo-balanco');
-    window.print();
+    document.body.classList.add('imprimindo-balanco'); window.print();
     setTimeout(() => { document.body.classList.remove('imprimindo-balanco'); }, 1000);
 }
 
+function dispararRescisaoImediata(id, tipo) {
+    const f = funcionarios.find(emp => emp.id === id);
+    if (!f) return;
+    const msg = tipo === 'demissao_sem_justa' ? 'Calcular DISPENSA SEM JUSTA CAUSA de ' : 'Calcular PEDIDO DE DEMISSÃO de ';
+    if (confirm(msg + f.nome + "?")) { emitirRescisaoExecutiva(f, tipo); }
+}
+
+
+
 function abrirContracheque(id) {
     const f = funcionarios.find(emp => emp.id === id);
-    if(!f) return;
-    const vHora = f.salario / f.horas_comp;
-    const vBanco = f.banco_horas > 0 ? f.banco_horas * vHora : 0;
-    const proventosTotais = f.salario + (f.total_he_ganho || 0) + (f.reflexo_13_ferias || 0) + (f.insalubridade || 0) + (f.beneficios || 0) + (f.salario_familia || 0) + (f.adicional_noturno || 0) + vBanco;
-    const janela = window.open('', '_blank', 'width=750,height=850');
-    if (!janela) { alert("Pop-up bloqueado pelo navegador! Permita pop-ups para ver o recibo."); return; }
-    janela.document.write("<html><body style='font-family:monospace; padding:25px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>RECIBO DE PAGAMENTO MENSAL</h2><p><strong>TERCEIRO ADM ASSOCIADOS</strong></p><hr><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Dep:</strong> " + (f.departamento || 'Geral') + "</p><p><strong>Salário Base:</strong> " + formatarMoeda(f.salario) + "</p><p><strong>Total Proventos:</strong> " + formatarMoeda(proventosTotais) + "</p><h3>VALOR LÍQUIDO: " + formatarMoeda(f.liquido) + "</h3></div></body></html>");
-    janela.document.close();
+    if (!f) return;
+    
+    const proventos = f.salario + (f.total_he_ganho || 0) + (f.insalubridade || 0) + (f.adicional_noturno || 0) + (f.beneficios || 0) + (f.salario_familia || 0);
+    const janela = window.open('', '_blank', 'width=800,height=900');
+    if (!janela) { alert("Pop-up bloqueado!"); return; }
+
+    let html = "<html><head><title>Holerite Oficial</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
+    html += "<div class='header-holerite'><img src='/static/logo.jpg' alt='Logo TAASS' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE PAGAMENTO MENSAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p><p><strong>Mês de Referência:</strong> " + f.mes_ref + "</p></div>";
+    
+    html += "<h4 class='section-title proventos-title'>PROVENTOS (CRÉDITOS)</h4><table class='table-holerite'>";
+    html += "<tr><td>(+) Salário Base</td><td class='text-right'>" + formatarMoeda(f.salario) + "</td></tr>";
+    if (f.total_he_ganho > 0) html += "<tr><td>(+) Horas Extras Acumuladas</td><td class='text-right'>" + formatarMoeda(f.total_he_ganho) + "</td></tr>";
+    if (f.insalubridade > 0) html += "<tr><td>(+) Adicional Insalubridade</td><td class='text-right'>" + formatarMoeda(f.insalubridade) + "</td></tr>";
+    if (f.adicional_noturno > 0) html += "<tr><td>(+) Adicional Noturno</td><td class='text-right'>" + formatarMoeda(f.adicional_noturno) + "</td></tr>";
+    if (f.beneficios > 0) html += "<tr><td>(+) Auxílios/Benefícios</td><td class='text-right'>" + formatarMoeda(f.beneficios) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr></table>";
+
+    html += "<h4 class='section-title descontos-title'>DESCONTOS (RETENÇÕES)</h4><table class='table-holerite'>";
+    if (f.inss > 0) html += "<tr><td>(-) INSS Progressivo</td><td class='text-right'>" + formatarMoeda(f.inss) + "</td></tr>";
+    if (f.irrf > 0) html += "<tr><td>(-) Imposto de Renda (IRRF)</td><td class='text-right'>" + formatarMoeda(f.irrf) + "</td></tr>";
+    if (f.vt > 0) html += "<tr><td>(-) Vale Transporte (6%)</td><td class='text-right'>" + formatarMoeda(f.vt) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(f.total_descontos) + "</td></tr></table>";
+
+    html += "<div class='liquido-box'><span class='liquido-label'>VALOR LÍQUIDO A RECEBER:</span><span class='liquido-value'>" + formatarMoeda(f.liquido) + "</span></div>";
+    html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura do Colaborador</p></div></div></body></html>";
+    janela.document.write(html); janela.document.close();
 }
 
 function abrirFerias(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if(!f) return;
-    const baseFerias = f.salario + (f.insalubridade || 0) + (f.adicional_noturno || 0);
-    const terco = baseFerias / 3;
+    const base = f.salario + (f.insalubridade || 0);
     const janela = window.open('', '_blank', 'width=750,height=700');
-    if (!janela) { alert("Pop-up bloqueado pelo navegador! Permita pop-ups para ver o aviso de férias."); return; }
-    janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:600px; margin:0 auto;'><h2>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><hr><p><strong>Colaborador:</strong> " + f.nome + "</p><h3>LÍQUIDO DAS FÉRIAS: " + formatarMoeda((baseFerias + terco) * 0.91) + "</h3></div></body></html>");
-    janela.document.close();
-}
-
-function selecionarTipoRescisao(id) {
-    const f = funcionarios.find(emp => emp.id === id);
-    if(!f) return;
-    const tipo = confirm("Clique em [OK] para DISPENSA SEM JUSTA CAUSA.\nClique em [CANCELAR] para PEDIDO DE DEMISSÃO.");
-    emitirRescisaoExecutiva(f, tipo ? 'demissao_sem_justa' : 'pedido_demissao');
+    let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box' style='text-align:center;'>";
+    html += "<img src='/static/logo.jpg' style='height:70px; margin-bottom:15px;'><hr><h2>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><br><p><strong>Colaborador:</strong> " + f.nome + "</p><br><h3>LÍQUIDO DAS FÉRIAS: " + formatarMoeda((base + (base/3)) * 0.91) + "</h3></div></body></html>";
+    janela.document.write(html); janela.document.close();
 }
 
 async function emitirRescisaoExecutiva(f, tipo) {
     let liq = f.salario * 1.4;
     try {
         const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
-        const r = await resposta.json();
-        liq = r.liquido;
-    } catch(e) { console.warn("Usando cálculo local para rescisão."); }
-    
+        const r = await resposta.json(); liq = r.liquido;
+    } catch(e) {}
     const janela = window.open('', '_blank', 'width=750,height=850');
-    if (!janela) { alert("Pop-up bloqueado pelo navegador! Permita pop-ups para ver o termo de rescisão."); return; }
-    janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>TERMO DE RESCISÃO CLT</h2><hr><p><strong>Causa:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p><h3>LÍQUIDO DA QUITAÇÃO: " + formatarMoeda(liq) + "</h3></div></body></html>");
-    janela.document.close();
+    let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
+    html += "<div style='text-align:center;'><img src='/static/logo.jpg' style='height:75px;'><br><h2>TERMO DE RESCISÃO CONTRATUAL</h2></div><hr>";
+    html += "<p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p><br><h3>LÍQUIDO DA QUITAÇÃO: " + formatarMoeda(liq) + "</h3></div></body></html>";
+    janela.document.write(html); janela.document.close();
 }
 
 function abrirDecimoTerceiroGeral() {
     if (funcionarios.length === 0) { alert("Nenhum funcionário ativo."); return; }
-    let totalLiquido = 0;
-    funcionarios.forEach(f => { totalLiquido += (f.salario * 0.91); });
+    let total = 0; funcionarios.forEach(f => { total += (f.salario * 0.91); });
     const janela = window.open('', '_blank', 'width=750,height=700');
-    if (!janela) { alert("Pop-up bloqueado pelo navegador! Permita pop-ups para ver o décimo terceiro."); return; }
-    janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>FOLHA DE 13º SALÁRIO INTEGRAL</h2><hr><h3>TOTAL LÍQUIDO A PAGAR: " + formatarMoeda(totalLiquido) + "</h3></div></body></html>");
-    janela.document.close();
+    let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box' style='text-align:center;'>";
+    html += "<img src='/static/logo.jpg' style='height:70px;'><hr><h2>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><br><h3>TOTAL LÍQUIDO GERAL A PAGAR: " + formatarMoeda(total) + "</h3></div></body></html>";
+    janela.document.write(html); janela.document.close();
 }
 
 async function deletarFuncionario(id) {
-    if (!confirm("Tem certeza que deseja demitir este profissional?")) return;
-    try {
-        await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' });
-    } catch(e) { console.error("Erro na API ao deletar"); }
+    if (!confirm("Tem certeza que deseja remover este registro do sistema?")) return;
+    try { await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' }); } catch(e) {}
     await carregarDadosBanco();
+}
+
+function obterEstiloHolerite() {
+    return `
+        body { font-family: 'Courier New', Courier, monospace; padding: 20px; background: #fff; color: #000; }
+        .holerite-box { border: 2px solid #000; padding: 30px; max-width: 700px; margin: 0 auto; background: #fff; }
+        .header-holerite { text-align: center; margin-bottom: 10px; }
+        hr { border: 0; border-top: 1px solid #000; margin: 15px 0; }
+        .info-colaborador p { margin: 6px 0; font-size: 0.95rem; }
+        .section-title { font-size: 1rem; margin: 25px 0 8px 0; font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 3px; }
+        .proventos-title { color: #1e3a8a; } .descontos-title { color: #dc2626; }
+        .table-holerite { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.95rem; }
+        .table-holerite td { padding: 6px 0; } .text-right { text-align: right; font-weight: bold; }
+        .row-total td { font-weight: bold; padding-top: 12px; border-top: 1px solid #000; }
+        .liquido-box { border: 2px solid #000; margin-top: 35px; padding: 15px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+        .liquido-label { font-weight: bold; font-size: 1.1rem; } .liquido-value { font-weight: bold; font-size: 1.2rem; color: #16a34a; }
+        .assinatura-container { margin-top: 60px; text-align: center; } .linha-assinatura { width: 60%; border-bottom: 1px solid #000; margin: 0 auto 8px auto; }
+    `;
 }
