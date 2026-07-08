@@ -277,12 +277,15 @@ function abrirContracheque(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if (!f) return;
     
+    // CORREÇÃO: Captura a URL real do servidor (Render ou Localhost) para a logo nunca quebrar
+    const urlLogo = window.location.origin + '/static/logo.jpg';
+    
     const proventos = f.salario + (f.total_he_ganho || 0) + (f.insalubridade || 0) + (f.adicional_noturno || 0) + (f.beneficios || 0) + (f.salario_familia || 0);
     const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Holerite Oficial</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='/static/logo.jpg' alt='Logo TAASS' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE PAGAMENTO MENSAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' alt='Logo TAASS' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE PAGAMENTO MENSAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p><p><strong>Mês de Referência:</strong> " + f.mes_ref + "</p></div>";
     
     html += "<h4 class='section-title proventos-title'>PROVENTOS (CRÉDITOS)</h4><table class='table-holerite'>";
@@ -307,55 +310,34 @@ function abrirContracheque(id) {
 function abrirFerias(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if(!f) return;
+    const urlLogo = window.location.origin + '/static/logo.jpg';
     const base = f.salario + (f.insalubridade || 0);
     const janela = window.open('', '_blank', 'width=750,height=700');
     let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box' style='text-align:center;'>";
-    html += "<img src='/static/logo.jpg' style='height:70px; margin-bottom:15px;'><hr><h2>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><br><p><strong>Colaborador:</strong> " + f.nome + "</p><br><h3>LÍQUIDO DAS FÉRIAS: " + formatarMoeda((base + (base/3)) * 0.91) + "</h3></div></body></html>";
+    html += "<img src='" + urlLogo + "' style='height:70px; margin-bottom:15px;'><hr><h2>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><br><p><strong>Colaborador:</strong> " + f.nome + "</p><br><h3>LÍQUIDO DAS FÉRIAS: " + formatarMoeda((base + (base/3)) * 0.91) + "</h3></div></body></html>";
     janela.document.write(html); janela.document.close();
 }
 
 async function emitirRescisaoExecutiva(f, tipo) {
     let liq = f.salario * 1.4;
+    const urlLogo = window.location.origin + '/static/logo.jpg';
     try {
         const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
         const r = await resposta.json(); liq = r.liquido;
     } catch(e) {}
     const janela = window.open('', '_blank', 'width=750,height=850');
     let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div style='text-align:center;'><img src='/static/logo.jpg' style='height:75px;'><br><h2>TERMO DE RESCISÃO CONTRATUAL</h2></div><hr>";
+    html += "<div style='text-align:center;'><img src='" + urlLogo + "' style='height:75px;'><br><h2>TERMO DE RESCISÃO CONTRATUAL</h2></div><hr>";
     html += "<p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p><br><h3>LÍQUIDO DA QUITAÇÃO: " + formatarMoeda(liq) + "</h3></div></body></html>";
     janela.document.write(html); janela.document.close();
 }
 
 function abrirDecimoTerceiroGeral() {
     if (funcionarios.length === 0) { alert("Nenhum funcionário ativo."); return; }
+    const urlLogo = window.location.origin + '/static/logo.jpg';
     let total = 0; funcionarios.forEach(f => { total += (f.salario * 0.91); });
     const janela = window.open('', '_blank', 'width=750,height=700');
     let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box' style='text-align:center;'>";
-    html += "<img src='/static/logo.jpg' style='height:70px;'><hr><h2>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><br><h3>TOTAL LÍQUIDO GERAL A PAGAR: " + formatarMoeda(total) + "</h3></div></body></html>";
+    html += "<img src='" + urlLogo + "' style='height:70px;'><hr><h2>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><br><h3>TOTAL LÍQUIDO GERAL A PAGAR: " + formatarMoeda(total) + "</h3></div></body></html>";
     janela.document.write(html); janela.document.close();
-}
-
-async function deletarFuncionario(id) {
-    if (!confirm("Tem certeza que deseja remover este registro do sistema?")) return;
-    try { await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' }); } catch(e) {}
-    await carregarDadosBanco();
-}
-
-function obterEstiloHolerite() {
-    return `
-        body { font-family: 'Courier New', Courier, monospace; padding: 20px; background: #fff; color: #000; }
-        .holerite-box { border: 2px solid #000; padding: 30px; max-width: 700px; margin: 0 auto; background: #fff; }
-        .header-holerite { text-align: center; margin-bottom: 10px; }
-        hr { border: 0; border-top: 1px solid #000; margin: 15px 0; }
-        .info-colaborador p { margin: 6px 0; font-size: 0.95rem; }
-        .section-title { font-size: 1rem; margin: 25px 0 8px 0; font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 3px; }
-        .proventos-title { color: #1e3a8a; } .descontos-title { color: #dc2626; }
-        .table-holerite { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.95rem; }
-        .table-holerite td { padding: 6px 0; } .text-right { text-align: right; font-weight: bold; }
-        .row-total td { font-weight: bold; padding-top: 12px; border-top: 1px solid #000; }
-        .liquido-box { border: 2px solid #000; margin-top: 35px; padding: 15px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
-        .liquido-label { font-weight: bold; font-size: 1.1rem; } .liquido-value { font-weight: bold; font-size: 1.2rem; color: #16a34a; }
-        .assinatura-container { margin-top: 60px; text-align: center; } .linha-assinatura { width: 60%; border-bottom: 1px solid #000; margin: 0 auto 8px auto; }
-    `;
 }
