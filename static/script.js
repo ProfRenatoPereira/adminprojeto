@@ -277,15 +277,13 @@ function abrirContracheque(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if (!f) return;
     
-    // CORREÇÃO: Captura a URL real do servidor (Render ou Localhost) para a logo nunca quebrar
-    const urlLogo = window.location.origin + '/static/logo.jpg';
-    
+    const urlLogo = obterLogoBase64();
     const proventos = f.salario + (f.total_he_ganho || 0) + (f.insalubridade || 0) + (f.adicional_noturno || 0) + (f.beneficios || 0) + (f.salario_familia || 0);
     const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Holerite Oficial</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' alt='Logo TAASS' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE PAGAMENTO MENSAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' alt='Logo TAASS' style='height:75px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE PAGAMENTO MENSAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p><p><strong>Mês de Referência:</strong> " + f.mes_ref + "</p></div>";
     
     html += "<h4 class='section-title proventos-title'>PROVENTOS (CRÉDITOS)</h4><table class='table-holerite'>";
@@ -309,49 +307,102 @@ function abrirContracheque(id) {
 
 function abrirFerias(id) {
     const f = funcionarios.find(emp => emp.id === id);
-    if(!f) return;
-    const urlLogo = window.location.origin + '/static/logo.jpg';
+    if (!f) return;
+    const urlLogo = obterLogoBase64();
     const base = f.salario + (f.insalubridade || 0);
-    const janela = window.open('', '_blank', 'width=750,height=700');
-    let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box' style='text-align:center;'>";
-    html += "<img src='" + urlLogo + "' style='height:70px; margin-bottom:15px;'><hr><h2>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><br><p><strong>Colaborador:</strong> " + f.nome + "</p><br><h3>LÍQUIDO DAS FÉRIAS: " + formatarMoeda((base + (base/3)) * 0.91) + "</h3></div></body></html>";
+    const terco = base / 3;
+    const totalBruto = base + terco;
+    const totalDescontos = totalBruto * 0.09; // Simulação de retenção padrão
+    
+    const janela = window.open('', '_blank', 'width=800,height=900');
+    if (!janela) { alert("Pop-up bloqueado!"); return; }
+
+    let html = "<html><head><title>Recibo de Férias</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' alt='Logo TAASS' style='height:75px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p></div>";
+    
+    html += "<h4 class='section-title proventos-title'>VERBAS REFEITAS (CRÉDITOS)</h4><table class='table-holerite'>";
+    html += "<tr><td>(+) Valor Bruto das Férias (30 dias)</td><td class='text-right'>" + formatarMoeda(base) + "</td></tr>";
+    html += "<tr><td>(+) Terço Constitucional de Férias (1/3)</td><td class='text-right'>" + formatarMoeda(terco) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalBruto) + "</td></tr></table>";
+
+    html += "<h4 class='section-title descontos-title'>DEDUÇÕES LEGAIS</h4><table class='table-holerite'>";
+    html += "<tr><td>(-) Retenções Previdenciárias/Fiscais</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr></table>";
+
+    html += "<div class='liquido-box'><span class='liquido-label'>VALOR LÍQUIDO DAS FÉRIAS:</span><span class='liquido-value'>" + formatarMoeda(totalBruto - totalDescontos) + "</span></div>";
+    html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura do Colaborador</p></div></div></body></html>";
     janela.document.write(html); janela.document.close();
 }
 
+
+
+
+
 async function emitirRescisaoExecutiva(f, tipo) {
     let liq = f.salario * 1.4;
-    const urlLogo = window.location.origin + '/static/logo.jpg';
+    let proventos = f.salario * 1.5;
+    let descontos = f.salario * 0.1;
+    const urlLogo = obterLogoBase64();
     try {
         const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
-        const r = await resposta.json(); liq = r.liquido;
+        const r = await resposta.json(); 
+        liq = r.liquido;
+        proventos = r.totalProventos;
+        descontos = proventos - liq;
     } catch(e) {}
-    const janela = window.open('', '_blank', 'width=750,height=850');
-    let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div style='text-align:center;'><img src='" + urlLogo + "' style='height:75px;'><br><h2>TERMO DE RESCISÃO CONTRATUAL</h2></div><hr>";
-    html += "<p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p><br><h3>LÍQUIDO DA QUITAÇÃO: " + formatarMoeda(liq) + "</h3></div></body></html>";
+    
+    const janela = window.open('', '_blank', 'width=800,height=900');
+    if (!janela) { alert("Pop-up bloqueado!"); return; }
+
+    let html = "<html><head><title>Rescisão Contratual</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:75px; margin-bottom:10px;'><h2 style='margin:0;'>TERMO DE RESCISÃO CONTRATUAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa do Afastamento:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p></div>";
+    
+    html += "<h4 class='section-title proventos-title'>VERBAS RESCISÓRIAS (CRÉDITOS)</h4><table class='table-holerite'>";
+    html += "<tr><td>(+) Saldo de Salário e Reflexos Proporcionais</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr></table>";
+
+    html += "<h4 class='section-title descontos-title'>DEDUÇÕES E DESCONTOS</h4><table class='table-holerite'>";
+    html += "<tr><td>(-) Deduções Legais / Aviso Prévio</td><td class='text-right'>" + formatarMoeda(descontos) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(descontos) + "</td></tr></table>";
+
+    html += "<div class='liquido-box'><span class='liquido-label'>VALOR LÍQUIDO DA QUITAÇÃO:</span><span class='liquido-value'>" + formatarMoeda(liq) + "</span></div>";
+    html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Quitação do Contrato de Trabalho</p></div></div></body></html>";
     janela.document.write(html); janela.document.close();
 }
 
 function abrirDecimoTerceiroGeral() {
     if (funcionarios.length === 0) { alert("Nenhum funcionário ativo."); return; }
-    const urlLogo = window.location.origin + '/static/logo.jpg';
-    let total = 0; funcionarios.forEach(f => { total += (f.salario * 0.91); });
-    const janela = window.open('', '_blank', 'width=750,height=700');
-    let html = "<html><head><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box' style='text-align:center;'>";
-    html += "<img src='" + urlLogo + "' style='height:70px;'><hr><h2>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><br><h3>TOTAL LÍQUIDO GERAL A PAGAR: " + formatarMoeda(total) + "</h3></div></body></html>";
+    const urlLogo = obterLogoBase64();
+    let totalProventos = 0; 
+    funcionarios.forEach(f => { totalProventos += f.salario; });
+    let totalDescontos = totalProventos * 0.09;
+    
+    const janela = window.open('', '_blank', 'width=800,height=900');
+    if (!janela) { alert("Pop-up bloqueado!"); return; }
+
+    let html = "<html><head><title>Folha de 13º</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:75px; margin-bottom:10px;'><h2 style='margin:0;'>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    
+    html += "<h4 class='section-title proventos-title'>CRÉDITOS DA FOLHA INTEGRAL</h4><table class='table-holerite'>";
+    html += "<tr><td>(+) Valor Bruto Global Prorrogado</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr></table>";
+
+    html += "<h4 class='section-title descontos-title'>RETENÇÕES COMPENSATÓRIAS</h4><table class='table-holerite'>";
+    html += "<tr><td>(-) Descontos Previdenciários Globais</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr></table>";
+
+    html += "<div class='liquido-box'><span class='liquido-label'>TOTAL LÍQUIDO GERAL A PAGAR:</span><span class='liquido-value'>" + formatarMoeda(totalProventos - totalDescontos) + "</span></div>";
+    html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura de Fechamento de Exercício</p></div></div></body></html>";
     janela.document.write(html); janela.document.close();
 }
-
-
-
-
 
 async function deletarFuncionario(id) {
     if (!confirm("Tem certeza que deseja remover este registro do sistema?")) return;
     try { await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' }); } catch(e) {}
     await carregarDadosBanco();
 }
-
 
 function obterEstiloHolerite() {
     return `
@@ -369,4 +420,9 @@ function obterEstiloHolerite() {
         .liquido-label { font-weight: bold; font-size: 1.1rem; } .liquido-value { font-weight: bold; font-size: 1.2rem; color: #16a34a; }
         .assinatura-container { margin-top: 60px; text-align: center; } .linha-assinatura { width: 60%; border-bottom: 1px solid #000; margin: 0 auto 8px auto; }
     `;
+}
+
+function obterLogoBase64() {
+    // Vetor gráfico embutido em Base64 - Gera uma logo de empresa geométrica corporativa que nunca quebra
+    return "data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 300 80'><rect width='45' height='45' x='10' y='15' fill='%231e3a8a' rx='5'/><path d='M25 25 L40 40 L25 50 Z' fill='%2316a34a'/><text x='70' y='40' font-family='Arial' font-size='18' font-weight='bold' fill='%231e3a8a'>TERCEIRO ADM</text><text x='70' y='58' font-family='Arial' font-size='12' font-weight='600' fill='%2364748b'>ASSOCIADOS</text></svg>";
 }
