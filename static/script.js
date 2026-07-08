@@ -229,7 +229,7 @@ function renderizarGraficosNativos(liquido, descontos) {
     if (containerPareto) {
         containerPareto.innerHTML = '';
         cargos.slice(0, 4).forEach(c => {
-            const pct = (custosCargo[c] / maxCusto) * 100;
+            const pct = maxCusto > 0 ? (custosCargo[c] / maxCusto) * 100 : 0;
             containerPareto.innerHTML += '<div class="bar-wrapper"><div class="bar-native" style="height: ' + pct + '%">' + pct.toFixed(0) + '%</div><div class="bar-label">' + c + '</div></div>';
         });
     }
@@ -238,7 +238,7 @@ function renderizarGraficosNativos(liquido, descontos) {
         containerLinear.innerHTML = '';
         const maxBruto = funcionarios.length > 0 ? Math.max(...funcionarios.map(f => f.salario)) : 1;
         funcionarios.slice(-4).forEach(f => {
-            const pct = (f.salario / maxBruto) * 100;
+            const pct = maxBruto > 0 ? (f.salario / maxBruto) * 100 : 0;
             containerLinear.innerHTML += '<div class="linear-row"><div class="linear-name">' + f.nome + '</div><div class="linear-bar-bg"><div class="linear-bar-fill" style="width: ' + pct + '%"></div></div><div class="linear-value" style="color:#1e3a8a">' + formatarMoeda(f.salario) + '</div></div>';
         });
     }
@@ -287,6 +287,7 @@ function abrirContracheque(id) {
     const vBanco = f.banco_horas > 0 ? f.banco_horas * vHora : 0;
     const proventosTotais = f.salario + (f.total_he_ganho || 0) + (f.reflexo_13_ferias || 0) + (f.insalubridade || 0) + (f.beneficios || 0) + (f.salario_familia || 0) + (f.adicional_noturno || 0) + vBanco;
     const janela = window.open('', '_blank', 'width=750,height=850');
+    if (!janela) { alert("Pop-up bloqueado pelo navegador! Permita pop-ups para ver o recibo."); return; }
     janela.document.write("<html><body style='font-family:monospace; padding:25px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>RECIBO DE PAGAMENTO MENSAL</h2><p><strong>TERCEIRO ADM ASSOCIADOS</strong></p><hr><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Dep:</strong> " + (f.departamento || 'Geral') + "</p><p><strong>Salário Base:</strong> " + formatarMoeda(f.salario) + "</p><p><strong>Total Proventos:</strong> " + formatarMoeda(proventosTotais) + "</p><h3>VALOR LÍQUIDO: " + formatarMoeda(f.liquido) + "</h3></div></body></html>");
     janela.document.close();
 }
@@ -297,6 +298,7 @@ function abrirFerias(id) {
     const baseFerias = f.salario + (f.insalubridade || 0) + (f.adicional_noturno || 0);
     const terco = baseFerias / 3;
     const janela = window.open('', '_blank', 'width=750,height=700');
+    if (!janela) { alert("Pop-up bloqueado pelo navegador! Permita pop-ups para ver o aviso de férias."); return; }
     janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:600px; margin:0 auto;'><h2>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><hr><p><strong>Colaborador:</strong> " + f.nome + "</p><h3>LÍQUIDO DAS FÉRIAS: " + formatarMoeda((baseFerias + terco) * 0.91) + "</h3></div></body></html>");
     janela.document.close();
 }
@@ -317,6 +319,7 @@ async function emitirRescisaoExecutiva(f, tipo) {
     } catch(e) { console.warn("Usando cálculo local para rescisão."); }
     
     const janela = window.open('', '_blank', 'width=750,height=850');
+    if (!janela) { alert("Pop-up bloqueado pelo navegador! Permita pop-ups para ver o termo de rescisão."); return; }
     janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>TERMO DE RESCISÃO CLT</h2><hr><p><strong>Causa:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p><h3>LÍQUIDO DA QUITAÇÃO: " + formatarMoeda(liq) + "</h3></div></body></html>");
     janela.document.close();
 }
@@ -326,6 +329,7 @@ function abrirDecimoTerceiroGeral() {
     let totalLiquido = 0;
     funcionarios.forEach(f => { totalLiquido += (f.salario * 0.91); });
     const janela = window.open('', '_blank', 'width=750,height=700');
+    if (!janela) { alert("Pop-up bloqueado pelo navegador! Permita pop-ups para ver o décimo terceiro."); return; }
     janela.document.write("<html><body style='font-family:monospace; padding:30px;'><div style='border:2px solid #000; padding:20px; max-width:650px; margin:0 auto;'><h2>FOLHA DE 13º SALÁRIO INTEGRAL</h2><hr><h3>TOTAL LÍQUIDO A PAGAR: " + formatarMoeda(totalLiquido) + "</h3></div></body></html>");
     janela.document.close();
 }
@@ -337,4 +341,3 @@ async function deletarFuncionario(id) {
     } catch(e) { console.error("Erro na API ao deletar"); }
     await carregarDadosBanco();
 }
-
