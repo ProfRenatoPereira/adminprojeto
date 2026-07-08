@@ -341,3 +341,32 @@ function abrirDecimoTerceiroGeral() {
     html += "<img src='" + urlLogo + "' style='height:70px;'><hr><h2>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><br><h3>TOTAL LÍQUIDO GERAL A PAGAR: " + formatarMoeda(total) + "</h3></div></body></html>";
     janela.document.write(html); janela.document.close();
 }
+
+
+
+
+
+async function deletarFuncionario(id) {
+    if (!confirm("Tem certeza que deseja remover este registro do sistema?")) return;
+    try { await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' }); } catch(e) {}
+    await carregarDadosBanco();
+}
+
+
+function obterEstiloHolerite() {
+    return `
+        body { font-family: 'Courier New', Courier, monospace; padding: 20px; background: #fff; color: #000; }
+        .holerite-box { border: 2px solid #000; padding: 30px; max-width: 700px; margin: 0 auto; background: #fff; }
+        .header-holerite { text-align: center; margin-bottom: 10px; }
+        hr { border: 0; border-top: 1px solid #000; margin: 15px 0; }
+        .info-colaborador p { margin: 6px 0; font-size: 0.95rem; }
+        .section-title { font-size: 1rem; margin: 25px 0 8px 0; font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 3px; }
+        .proventos-title { color: #1e3a8a; } .descontos-title { color: #dc2626; }
+        .table-holerite { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.95rem; }
+        .table-holerite td { padding: 6px 0; } .text-right { text-align: right; font-weight: bold; }
+        .row-total td { font-weight: bold; padding-top: 12px; border-top: 1px solid #000; }
+        .liquido-box { border: 2px solid #000; margin-top: 35px; padding: 15px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+        .liquido-label { font-weight: bold; font-size: 1.1rem; } .liquido-value { font-weight: bold; font-size: 1.2rem; color: #16a34a; }
+        .assinatura-container { margin-top: 60px; text-align: center; } .linha-assinatura { width: 60%; border-bottom: 1px solid #000; margin: 0 auto 8px auto; }
+    `;
+}
