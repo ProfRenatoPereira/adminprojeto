@@ -47,6 +47,7 @@ def calcular_irrf(salario_contribuicao, desconto_inss):
     if base <= 4664.68: return (base * 0.225) - 662.77
     return (base * 0.275) - 896.00
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -79,7 +80,7 @@ def listar_funcionarios():
     cursor.execute('SELECT * FROM funcionarios')
     linhas = cursor.fetchall()
     conexao.close()
-    return jsonify([dict(linha) for linha in linhas])
+    return jsonify([dict(linha) for child, linha in enumerate(linhas)])
 
 @app.route('/api/funcionarios/<int:id_func>', methods=['DELETE'])
 def demitir_funcionario(id_func):
@@ -89,6 +90,7 @@ def demitir_funcionario(id_func):
     conexao.commit()
     conexao.close()
     return jsonify({'status': 'removido'})
+
 
 @app.route('/api/calcular', methods=['POST'])
 def calcular_e_salvar():
