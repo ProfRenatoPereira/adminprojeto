@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERCEIRO ADM ASSOCIADOS</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Painel Fiscal - TERCEIRO ADM ASSOCIADOS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         .bi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
         .chart-box { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
@@ -26,8 +26,14 @@
 </head>
 <body>
 <div class="container">
-    <header>
-        <div><h1>TERCEIRO ADM ASSOCIADOS</h1><p>Gerenciador de Pessoal | Abordagem Pedagógico-Didática de Custos</p></div>
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 3px solid var(--primary); padding-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 1.2rem;">
+            <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo TAASS" style="height: 65px; width: auto; object-fit: contain;">
+            <div>
+                <h1 style="margin: 0; color: var(--primary); font-size: 1.8rem;">TERCEIRO ADM ASSOCIADOS</h1>
+                <p style="margin: 3px 0 0 0; font-size: 0.9rem; color: #475569;">Gerenciador de Pessoal | Abordagem Pedagógico-Didática de Custos</p>
+            </div>
+        </div>
         <div class="actions-header" style="display: flex; gap: 0.5rem;">
             <button class="btn-print" id="btn_balanco">🖨️ Imprimir Balanço</button>
             <button class="btn-print" style="background:#0284c7" id="btn_13">🎄 Folha 13º Integral</button>
@@ -52,7 +58,9 @@
                 </div>
             </div>
         </div>
-        <div class="card">
+
+
+                <div class="card">
             <h3>Cadastro & Jornada</h3>
             <input type="hidden" id="func_id_edicao" value="">
             <div class="form-group"><label>Nome Completo</label><input type="text" id="nome" placeholder="Ex: Renato Silva"></div>
@@ -141,9 +149,22 @@
         <div class="chart-box"><h4>📊 Elasticidade de Salário Bruto (Aumentos)</h4><div id="nativeLinear" class="linear-wrapper"></div></div>
     </div>
     <div class="section-title"><h2>Quadro Corporativo Corrente</h2><button class="btn-print" style="background:#0284c7" id="btn_print_list">🖨️ Imprimir Listagem</button></div>
-    <div class="table-container"><table><thead><tr><th>Nome / Admissão</th><th>Cargo / Departamento</th><th>Jornada / Turno</th><th>Líquido Final</th><th>Ações</th></tr></thead><tbody id="tabela_corpo"></tbody></table></div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome / Admissão</th>
+                    <th>Cargo / Departamento</th>
+                    <th>Jornada / Turno</th>
+                    <th>Líquido Final</th>
+                    <th style="width: 250px;">Ações Legais e Rescisórias</th>
+                </tr>
+            </thead>
+            <tbody id="tabela_corpo"></tbody>
+        </table>
+    </div>
 </div>
 <div id="print-area"></div>
-    <script src="/static/script.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
