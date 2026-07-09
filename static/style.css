@@ -185,31 +185,49 @@ th {
 }
 .btn-delete:hover { background: #fef2f2; }
 
-#print-area { display: none; }
 /* MECANISMO DE IMPRESSÃO PROFISSIONAL CORRIGIDO */
 @media print {
-    body:not(.imprimindo-balanco) .container { 
-        visibility: visible !important; 
+    /* Força o navegador a carregar imagens e cores */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
-    body:not(.imprimindo-balanco) .grid-config, 
-    body:not(.imprimindo-balanco) header,
+
+    /* Quando NÃO estiver imprimindo o balanço (Imprimindo Holerite) */
+    body:not(.imprimindo-balanco) .container {
+        visibility: visible !important;
+    }
+    body:not(.imprimindo-balanco) .grid-config,
     body:not(.imprimindo-balanco) .bi-container,
     body:not(.imprimindo-balanco) .btn-print,
-    body:not(.imprimindo-balanco) .btn-delete {
-        display: none !important; 
+    body:not(.imprimindo-balanco) .btn-delete,
+    body:not(.imprimindo-balanco) .dashboard,
+    body:not(.imprimindo-balanco) .section-title,
+    body:not(.imprimindo-balanco) .table-container {
+        display: none !important; /* Esconde painéis e tabelas sobressalentes */
     }
-    body.imprimindo-balanco .container { 
-        display: none !important; 
+    body:not(.imprimindo-balanco) header {
+        display: flex !important; /* MANTÉM O HEADER COM A LOGO VISÍVEL */
     }
-    body.imprimindo-balanco #print-area, 
-    body.imprimindo-balanco #print-area * { 
-        visibility: visible !important; 
+    body:not(.imprimindo-balanco) header .actions-header {
+        display: none !important; /* Esconde apenas os botões do cabeçalho */
     }
-    #print-area { 
-        display: block !important; 
-        position: absolute; 
-        left: 0; 
-        top: 0; 
-        width: 100%; 
+
+    /* Quando ESTIVER imprimindo o balanço */
+    body.imprimindo-balanco .container {
+        display: none !important;
+    }
+    body.imprimindo-balanco #print-area,
+    body.imprimindo-balanco #print-area * {
+        visibility: visible !important;
+    }
+
+    #print-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
     }
 }
+
