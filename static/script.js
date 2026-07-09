@@ -321,105 +321,121 @@ function abrirContracheque(id) {
     if (f.irrf > 0) html += "<tr><td>(-) Imposto de Renda (IRRF)</td><td class='text-right'>" + formatarMoeda(f.irrf) + "</td></tr>";
     if (f.vt > 0) html += "<tr><td>(-) Vale Transporte (6%)</td><td class='text-right'>" + formatarMoeda(f.vt) + "</td></tr>";
 
+
+    
 function abrirFerias(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if (!f) return;
-    const urlLogo = obterLogoBase64();
     const base = f.salario + (f.insalubridade || 0);
     const terco = base / 3;
     const totalBruto = base + terco;
-
+    const totalDescontos = totalBruto * 0.09;
+    
+    const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Recibo de Férias</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
-    
-    // LOGOTIPO ATUALIZADO COM OS SÍMBOLOS EXATOS
     html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
     html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
     html += "  <div style='text-align: left;'>";
     html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
     html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
-    html += "  </div>";
-    html += "</div>";
-    
+    html += "  </div></div>";
     html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p></div>";
-
     html += "<h4 class='section-title proventos-title'>VERBAS REFEITAS (CRÉDITOS)</h4><table class='table-holerite'>";
+    html += "<tr><td>(+) Valor Bruto das Férias (30 dias)</td><td class='text-right'>" + formatarMoeda(base) + "</td></tr>";
+    html += "<tr><td>(+) Terço Constitucional de Férias (1/3)</td><td class='text-right'>" + formatarMoeda(terco) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalBruto) + "</td></tr></table>";
+    html += "<h4 class='section-title descontos-title'>DEDUÇÕES LEGAIS</h4><table class='table-holerite'>";
+    html += "<tr><td>(-) Retenções Previdenciárias/Fiscais</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr>";
+    html += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr></table>";
+    html += "<div class='liquido-box'><span class='liquido-label'>VALOR LÍQUIDO DAS FÉRIAS:</span><span class='liquido-value'>" + formatarMoeda(totalBruto - totalDescontos) + "</span></div>";
+    html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura do Colaborador</p></div></div></body></html>";
+    janela.document.write(html); janela.document.close();
+}
 
-    let liq = f.salario * 1.4;
-    let proventos = f.salario * 1.5;
-    let descontos = f.salario * 0.1;
-    const urlLogo = obterLogoBase64();
+
+
+async function emitirRescisaoExecutiva(f, tipo) {
+    let liq = f.salario * 1.4; let proventos = f.salario * 1.5; let descontos = f.salario * 0.1;
     try {
         const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
-        const r = await resposta.json(); 
-
+        const r = await resposta.json(); liq = r.liquido; proventos = r.totalProventos; descontos = proventos - liq;
+    } catch(e) {}
+    const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
-    let html = "<html><head><title>Rescisão Contratual</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>TERMO DE RESCISÃO CONTRATUAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
-    
-    // LOGOTIPO ATUALIZADO COM OS SÍMBOLOS EXATOS
-    html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
-    html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
-    html += "  <div style='text-align: left;'>";
-    html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
-    html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
-    html += "  </div>";
-    html += "</div>";
-    
-    html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>TERMO DE RESCISÃO CONTRATUAL</h2><hr>";
-    html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa do Afastamento:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p></div>";
-
-    html += "<h4 class='section-title proventos-title'>VERBAS RESCISÓRIAS (CRÉDITOS)</h4><table class='table-holerite'>";
-
+    let htmlRescisao = "<html><head><title>Rescisão Contratual</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
+    htmlRescisao += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
+    htmlRescisao += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
+    htmlRescisao += "  <div style='text-align: left;'>";
+    htmlRescisao += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
+    htmlRescisao += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
+    htmlRescisao += "  </div></div>";
+    htmlRescisao += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>TERMO DE RESCISÃO CONTRATUAL</h2><hr>";
+    htmlRescisao += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa do Afastamento:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p></div>";
+    htmlRescisao += "<h4 class='section-title proventos-title'>VERBAS RESCISÓRIAS (CRÉDITOS)</h4><table class='table-holerite'>";
+    htmlRescisao += "<tr><td>(+) Saldo de Salário e Reflexos Proporcionais</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr>";
+    htmlRescisao += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr></table>";
+    htmlRescisao += "<h4 class='section-title descontos-title'>DEDUÇÕES E DESCONTOS</h4><table class='table-holerite'>";
+    htmlRescisao += "<tr><td>(-) Deduções Legais / Aviso Prévio</td><td class='text-right'>" + formatarMoeda(descontos) + "</td></tr>";
+    htmlRescisao += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(descontos) + "</td></tr></table>";
+    htmlRescisao += "<div class='liquido-box'><span class='liquido-label'>VALOR LÍQUIDO DA QUITAÇÃO:</span><span class='liquido-value'>" + formatarMoeda(liq) + "</span></div>";
+    htmlRescisao += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Quitação do Contrato de Trabalho</p></div></div></body></html>";
+    janela.document.write(htmlRescisao); janela.document.close();
+}
 
 function abrirDecimoTerceiroGeral() {
     if (funcionarios.length === 0) { alert("Nenhum funcionário ativo."); return; }
-    const urlLogo = obterLogoBase64();
-    let totalProventos = 0; 
-    funcionarios.forEach(f => { totalProventos += f.salario; });
+    let totalProventos = 0; funcionarios.forEach(f => { totalProventos += f.salario; });
     let totalDescontos = totalProventos * 0.09;
-
+    const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
-    let html = "<html><head><title>Folha de 13º</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
-    
-    // LOGOTIPO ATUALIZADO COM OS SÍMBOLOS EXATOS
-    html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
-    html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
-    html += "  <div style='text-align: left;'>";
-    html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
-    html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
-    html += "  </div>";
-    html += "</div>";
-    
-    html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><hr>";
-    html += "<h4 class='section-title proventos-title'>CRÉDITOS DA FOLHA INTEGRAL</h4><table class='table-holerite'>";
-    html += "<tr><td>(+) Valor Bruto Global Prorrogado</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr>";
-    html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr></table>";
+    let html13 = "<html><head><title>Folha de 13º</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
+    html13 += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
+    html13 += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
+    html13 += "  <div style='text-align: left;'>";
+    html13 += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
+    html13 += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
+    html13 += "  </div></div>";
+    html13 += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><hr>";
+    html13 += "<h4 class='section-title proventos-title'>CRÉDITOS DA FOLHA INTEGRAL</h4><table class='table-holerite'>";
+    html13 += "<tr><td>(+) Valor Bruto Global Prorrogado</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr>";
+    html13 += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr></table>";
+    html13 += "<h4 class='section-title descontos-title'>RETENÇÕES COMPENSATÓRIAS</h4><table class='table-holerite'>";
+    html13 += "<tr><td>(-) Descontos Previdenciários Globais</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr>";
+    html13 += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr></table>";
+    html13 += "<div class='liquido-box'><span class='liquido-label'>TOTAL LÍQUIDO GERAL A PAGAR:</span><span class='liquido-value'>" + formatarMoeda(totalProventos - totalDescontos) + "</span></div>";
+    html13 += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura de Fechamento de Exercício</p></div></div></body></html>";
+    janela.document.write(html13); janela.document.close();
+}
 
+async function deletarFuncionario(id) {
+    if (!confirm("Tem certeza que deseja remover este registro do sistema?")) return;
+    try { await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' }); } catch(e) {}
+    await carregarDadosBanco();
+}
+
+
+
+function obterEstiloHolerite() {
+    return `
+        body { font-family: 'Courier New', Courier, monospace; padding: 20px; background: #fff; color: #000; }
+        .holerite-box { border: 2px solid #000; padding: 30px; max-width: 700px; margin: 0 auto; background: #fff; }
+        .header-holerite { text-align: center; margin-bottom: 10px; }
+        hr { border: 0; border-top: 1px solid #000; margin: 15px 0; }
+        .info-colaborador p { margin: 6px 0; font-size: 0.95rem; }
+        .section-title { font-size: 1rem; margin: 25px 0 8px 0; font-weight: bold; border-bottom: 1px dashed #000; padding-bottom: 3px; }
+        .proventos-title { color: #1e3a8a; } .descontos-title { color: #dc2626; }
+        .table-holerite { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.95rem; }
+        .table-holerite td { padding: 6px 0; } .text-right { text-align: right; font-weight: bold; }
+        .row-total td { font-weight: bold; padding-top: 12px; border-top: 1px solid #000; }
+        .liquido-box { border: 2px solid #000; margin-top: 35px; padding: 15px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+        .liquido-label { font-weight: bold; font-size: 1.1rem; } .liquido-value { font-weight: bold; font-size: 1.2rem; color: #16a34a; }
+        .assinatura-container { margin-top: 60px; text-align: center; } .linha-assinatura { width: 60%; border-bottom: 1px solid #000; margin: 0 auto 8px auto; }
     `;
 }
 
 
-
-function obterLogoBase64() {
-    // Código Base64 oficial limpo que gera o ícone azul/verde e o texto idêntico à sua logo real
-    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNTAgODAiPjxyZWN0IHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgeD0iMTUiIHk9IjE4IiBmaWxsPSIjMWUzYThhIiByeD0iNiIvPjxwYXRoIGQ9Ik0yOCAyOCBMMzggMzggTDI4IDQ4IFoiIGZpbGw9IiMxNmEzNGEiLz48dGV4dCB4PSI3NSIgeT0iNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTNhOGEiPlRFUkNFSVJPIEFETTwvdGV4dD4=";
-}
-
-// Função complementar para emendar a string da logo sem estourar o limite de caracteres
-function obterLogoBase64Cont() {
-    return "dGV4dCB4PSI3NSIgeT0iNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzY0NzQ4YiI+QVNTT0NJQURPUzwvdGV4dD48L3N2Zz4=";
-}
-
-// Substitua a função antiga por esta versão definitiva unificada
-function obterLogoBase64() {
-    const p1 = "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNTAgODAiPjxyZWN0IHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgeD0iMTUiIHk9IjE4IiBmaWxsPSIjMWUzYThhIiByeD0iNiIvPjxwYXRoIGQ9Ik0yOCAyOCBMMzggMzggTDI4IDQ4IFoiIGZpbGw9IiMxNmEzNGEiLz48dGV4dCB4PSI3NSIgeT0iNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTNhOGEiPlRFUkNFSVJPIEFETTwvdGV4dD4=";
-    const p2 = "PHRleHQgeD0iNzUiIHk9IjYwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiM2NDc0OGIiPkFTU09DSUFET1M8L3RleHQ+PC9zdmc+";
-    return "data:image/svg+xml;base64," + p1 + p2;
-}
