@@ -420,5 +420,15 @@ function obterEstiloHolerite() {
 }
 
 function obterLogoBase64() {
-    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgODAiPjxyZWN0IHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgeD0iMTAiIHk9IjE1IiBmaWxsPSIjMWUzYThhIiByeD0iNSIvPjxwYXRoIGQ9Ik0yNSAyNSBMMzUgMzUgTDI1IDQ1IFoiIGZpbGw9IiMxNmEzNGEiLz48dGV4dCB4PSI3MCIgeT0iNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTNhOGEiPlRFUkNFSVJPIEFETTwvdGV4dD48dGV4dCB4PSI3MCIgeT0iNTgiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzY0NzQ4YiI+QVNTT0NJQURPUzwvdGV4dD48L3N2Zz4=";
+    // Vetor gráfico oficial TAASS em formato URI para renderização imediata na impressão
+    return "data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 350 80'>";
+}
+// Continuação e fechamento da string do logotipo
+function obterLogoBase64Cont() {
+    return "<rect width='45' height='45' x='15' y='18' fill='%231e3a8a' rx='6'/><path d='M28 28 L48 40 L28 52 Z' fill='%2316a34a'/><text x='75' y='42' font-family='Arial, sans-serif' font-size='18' font-weight='bold' fill='%231e3a8a'>TERCEIRO ADM</text><text x='75' y='60' font-family='Arial, sans-serif' font-size='13' font-weight='600' fill='%2364748b'>ASSOCIADOS</text></svg>";
+}
+
+// Junta as duas partes automaticamente para os relatórios
+function obterLogoBase64() {
+    return "data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 350 80'><rect width='45' height='45' x='15' y='18' fill='%231e3a8a' rx='6'/><path d='M28 28 L45 40 L28 52 Z' fill='%2316a34a'/><text x='75' y='42' font-family='Arial' font-size='18' font-weight='bold' fill='%231e3a8a'>TERCEIRO ADM</text><text x='75' y='60' font-family='Arial' font-size='13' font-weight='600' fill='%2364748b'>ASSOCIADOS</text></svg>";
 }
