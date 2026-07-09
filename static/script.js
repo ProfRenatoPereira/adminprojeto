@@ -219,7 +219,9 @@ function renderizarGraficosNativos(liquido, descontos) {
     const custosCargo = {};
     funcionarios.forEach(f => custosCargo[f.cargo] = (custosCargo[f.cargo] || 0) + f.salario);
     const cargos = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
-    const maxCusto = cargos.length > 0 ? custosCargo[cargos] : 1;
+    
+    // CORREÇÃO: Captura o valor do primeiro item da lista (o maior custo de cargo)
+    const maxCusto = cargos.length > 0 ? custosCargo[cargos[0]] : 1;
     const containerPareto = document.getElementById('nativePareto');
     if (containerPareto) {
         containerPareto.innerHTML = '';
@@ -228,7 +230,25 @@ function renderizarGraficosNativos(liquido, descontos) {
             containerPareto.innerHTML += '<div class="bar-wrapper"><div class="bar-native" style="height: ' + pct + '%">' + pct.toFixed(0) + '%</div><div class="bar-label">' + c + '</div></div>';
         });
     }
+    
+    // CORREÇÃO: Chama a renderização do gráfico linear de elasticidade de aumentos
+    renderizarGraficoLinear();
 }
+
+function renderizarGraficoLinear() {
+    const containerLinear = document.getElementById('nativeLinear');
+    if (containerLinear) {
+        containerLinear.innerHTML = '';
+        const maxBruto = funcionarios.length > 0 ? Math.max(...funcionarios.map(f => f.salario)) : 1;
+        funcionarios.slice(-4).forEach(f => {
+            const pct = maxBruto > 0 ? (f.salario / maxBruto) * 100 : 0;
+            containerLinear.innerHTML += '<div class="linear-row"><div class="linear-name">' + f.nome + '</div><div class="linear-bar-bg"><div class="linear-bar-fill" style="width: ' + pct + '%"></div></div><div class="linear-value" style="color:#1e3a8a">' + formatarMoeda(f.salario) + '</div></div>';
+        });
+    }
+}
+
+
+
 
 function renderizarTabela() {
     const corpo = document.getElementById('tabela_corpo');
@@ -420,15 +440,18 @@ function obterEstiloHolerite() {
 }
 
 function obterLogoBase64() {
-    // Vetor gráfico oficial TAASS em formato URI para renderização imediata na impressão
-    return "data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 350 80'>";
-}
-// Continuação e fechamento da string do logotipo
-function obterLogoBase64Cont() {
-    return "<rect width='45' height='45' x='15' y='18' fill='%231e3a8a' rx='6'/><path d='M28 28 L48 40 L28 52 Z' fill='%2316a34a'/><text x='75' y='42' font-family='Arial, sans-serif' font-size='18' font-weight='bold' fill='%231e3a8a'>TERCEIRO ADM</text><text x='75' y='60' font-family='Arial, sans-serif' font-size='13' font-weight='600' fill='%2364748b'>ASSOCIADOS</text></svg>";
+    // Código Base64 oficial limpo que gera o ícone azul/verde e o texto idêntico à sua logo real
+    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNTAgODAiPjxyZWN0IHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgeD0iMTUiIHk9IjE4IiBmaWxsPSIjMWUzYThhIiByeD0iNiIvPjxwYXRoIGQ9Ik0yOCAyOCBMMzggMzggTDI4IDQ4IFoiIGZpbGw9IiMxNmEzNGEiLz48dGV4dCB4PSI3NSIgeT0iNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTNhOGEiPlRFUkNFSVJPIEFETTwvdGV4dD4=";
 }
 
-// Junta as duas partes automaticamente para os relatórios
+// Função complementar para emendar a string da logo sem estourar o limite de caracteres
+function obterLogoBase64Cont() {
+    return "dGV4dCB4PSI3NSIgeT0iNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzY0NzQ4YiI+QVNTT0NJQURPUzwvdGV4dD48L3N2Zz4=";
+}
+
+// Substitua a função antiga por esta versão definitiva unificada
 function obterLogoBase64() {
-    return "data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 350 80'><rect width='45' height='45' x='15' y='18' fill='%231e3a8a' rx='6'/><path d='M28 28 L45 40 L28 52 Z' fill='%2316a34a'/><text x='75' y='42' font-family='Arial' font-size='18' font-weight='bold' fill='%231e3a8a'>TERCEIRO ADM</text><text x='75' y='60' font-family='Arial' font-size='13' font-weight='600' fill='%2364748b'>ASSOCIADOS</text></svg>";
+    const p1 = "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNTAgODAiPjxyZWN0IHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgeD0iMTUiIHk9IjE4IiBmaWxsPSIjMWUzYThhIiByeD0iNiIvPjxwYXRoIGQ9Ik0yOCAyOCBMMzggMzggTDI4IDQ4IFoiIGZpbGw9IiMxNmEzNGEiLz48dGV4dCB4PSI3NSIgeT0iNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTNhOGEiPlRFUkNFSVJPIEFETTwvdGV4dD4=";
+    const p2 = "PHRleHQgeD0iNzUiIHk9IjYwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiM2NDc0OGIiPkFTU09DSUFET1M8L3RleHQ+PC9zdmc+";
+    return "data:image/svg+xml;base64," + p1 + p2;
 }
