@@ -19,6 +19,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('limite_func')?.addEventListener('change', actualizarDashboard);
 });
 
+
 async function carregarCargosBanco() {
     try {
         const resposta = await fetch('/api/cargos');
@@ -49,8 +50,6 @@ async function carregarCargosBanco() {
     }
 }
 
-
-
 async function carregarDadosBanco() {
     try {
         const resposta = await fetch('/api/funcionarios');
@@ -62,6 +61,8 @@ async function carregarDadosBanco() {
     renderizarTabela();
     actualizarDashboard();
 }
+
+
 
 async function adicionarCargoNovo() {
     const inputCargo = document.getElementById('novo_cargo_input');
@@ -97,10 +98,10 @@ async function adicionarFuncionario() {
         beneficios: parseFloat(pegarValor('beneficios')) || 0,
         heSemana: parseFloat(pegarValor('he_semana')) || parseFloat(pegarValor('heSemana')) || 0,
         heSabado: parseFloat(pegarValor('he_sabado')) || parseFloat(pegarValor('heSabado')) || 0,
-        heDomingo: parseFloat(pegarValor('he_domingo')) || parseFloat(pegarValor('heDomingo')) || 0,
+        heDomingo: parseFloat(document.getElementById('he_domingo')?.value) || 0,
         planoSaude: parseFloat(pegarValor('plano_saude')) || parseFloat(pegarValor('planoSaude')) || 0,
         planoOdonto: parseFloat(pegarValor('plano_odonto')) || parseFloat(pegarValor('planoOdonto')) || 0,
-        valeFarmacia: parseFloat(pegarValor('vale_farmacia')) || parseFloat(pegarValor('valeFarmacia')) || 0,
+        valeFarmacia: parseFloat(pegarValor('vale_farmacia')) || 0,
         sindicato: parseFloat(pegarValor('sindicato')) || 0,
         adiantamento: pegarValor('adiantamento'),
         vt: pegarValor('vt_desconto') || pegarValor('vtDesconto') || pegarValor('vt'),
@@ -126,6 +127,7 @@ async function adicionarFuncionario() {
         }
     } catch(e) { console.error("Erro ao enviar funcionário para API"); }
 }
+
 
 
 function limparCamposTela() {
@@ -171,9 +173,7 @@ function carregarFuncionarioParaEdicao(id, nome, cargo, salario, horas, regime, 
 async function salvarAlteracoesFuncionario() {
     const id = document.getElementById('func_id_edicao')?.value;
     if (!id) { alert('Selecione um funcionário clicando no nome dele primeiro.'); return; }
-    
-    const elPromocao = document.getElementById('novo_aumento_salarial');
-    const valorPromocao = elPromocao ? (parseFloat(elPromocao.value) || 0) : 0;
+    const valorPromocao = parseFloat(document.getElementById('novo_aumento_salarial')?.value) || 0;
     if (valorPromocao > 0 && document.getElementById('salario')) { 
         document.getElementById('salario').value = valorPromocao; 
     }
@@ -181,8 +181,7 @@ async function salvarAlteracoesFuncionario() {
 }
 
 function actualizarDashboard() {
-    const elReceita = document.getElementById('receita_empresa');
-    const receita = elReceita ? (parseFloat(elReceita.value) || 0) : 0;
+    const receita = parseFloat(document.getElementById('receita_empresa')?.value) || 0;
     let totalBruto = 0, totalDescontos = 0, totalLiquido = 0;
     funcionarios.forEach(f => {
         totalBruto += f.salario + (f.total_he_ganho || 0) + (f.insalubridade || 0) + (f.reflexo_13_ferias || 0) + (f.adicional_noturno || 0);
@@ -192,17 +191,15 @@ function actualizarDashboard() {
     let custoTotal = funcionarios.reduce((acc, f) => acc + f.salario + (f.beneficios || 0) + (f.total_he_ganho || 0) + (f.adicional_noturno || 0), 0);
     let saldoFinal = receita - custoTotal;
     
-    const elTotalFunc = document.getElementById('dash_total_func');
-    const elLimite = document.getElementById('limite_func');
-    if (elTotalFunc && elLimite) elTotalFunc.innerText = funcionarios.length + ' / ' + elLimite.value;
+    const elTotal = document.getElementById('dash_total_func');
+    const elLim = document.getElementById('limite_func');
+    if (elTotal && elLim) elTotal.innerText = funcionarios.length + ' / ' + elLim.value;
     
     if (document.getElementById('dash_custo_bruto')) document.getElementById('dash_custo_bruto').innerText = formatarMoeda(totalBruto);
     if (document.getElementById('dash_total_descontos')) document.getElementById('dash_total_descontos').innerText = formatarMoeda(totalDescontos);
     if (document.getElementById('dash_folha_liquida')) document.getElementById('dash_folha_liquida').innerText = formatarMoeda(totalLiquido);
     if (document.getElementById('dash_saldo_empresa')) document.getElementById('dash_saldo_empresa').innerText = formatarMoeda(saldoFinal);
-    
-    const cardBalanco = document.getElementById('card_balanco');
-    if (cardBalanco) cardBalanco.className = saldoFinal < 0 ? 'metric negative' : 'metric';
+    if (document.getElementById('card_balanco')) document.getElementById('card_balanco').className = saldoFinal < 0 ? 'metric negative' : 'metric';
     renderizarGraficosNativos(totalLiquido, totalDescontos);
 }
 
@@ -219,36 +216,16 @@ function renderizarGraficosNativos(liquido, descontos) {
     const custosCargo = {};
     funcionarios.forEach(f => custosCargo[f.cargo] = (custosCargo[f.cargo] || 0) + f.salario);
     const cargos = Object.keys(custosCargo).sort((a,b) => custosCargo[b] - custosCargo[a]);
-    
-    // CORREÇÃO: Captura o valor do primeiro item da lista (o maior custo de cargo)
     const maxCusto = cargos.length > 0 ? custosCargo[cargos[0]] : 1;
     const containerPareto = document.getElementById('nativePareto');
     if (containerPareto) {
         containerPareto.innerHTML = '';
         cargos.slice(0, 4).forEach(c => {
-            const pct = maxCusto > 0 ? (custosCargo[c] / maxCusto) * 100 : 0;
+            const pct = (custosCargo[c] / maxCusto) * 100;
             containerPareto.innerHTML += '<div class="bar-wrapper"><div class="bar-native" style="height: ' + pct + '%">' + pct.toFixed(0) + '%</div><div class="bar-label">' + c + '</div></div>';
         });
     }
-    
-    // CORREÇÃO: Chama a renderização do gráfico linear de elasticidade de aumentos
-    renderizarGraficoLinear();
 }
-
-function renderizarGraficoLinear() {
-    const containerLinear = document.getElementById('nativeLinear');
-    if (containerLinear) {
-        containerLinear.innerHTML = '';
-        const maxBruto = funcionarios.length > 0 ? Math.max(...funcionarios.map(f => f.salario)) : 1;
-        funcionarios.slice(-4).forEach(f => {
-            const pct = maxBruto > 0 ? (f.salario / maxBruto) * 100 : 0;
-            containerLinear.innerHTML += '<div class="linear-row"><div class="linear-name">' + f.nome + '</div><div class="linear-bar-bg"><div class="linear-bar-fill" style="width: ' + pct + '%"></div></div><div class="linear-value" style="color:#1e3a8a">' + formatarMoeda(f.salario) + '</div></div>';
-        });
-    }
-}
-
-
-
 
 function renderizarTabela() {
     const corpo = document.getElementById('tabela_corpo');
@@ -273,12 +250,16 @@ function renderizarTabela() {
     });
 }
 
+
+
+
+
 function imprimirBalanco() {
     const receita = parseFloat(document.getElementById('receita_empresa')?.value) || 0;
     let totalBruto = 0; funcionarios.forEach(f => { totalBruto += (f.salario + (f.total_he_ganho || 0)); });
     const area = document.getElementById('print-area');
     if (area) {
-        area.innerHTML = "<div style='padding:40px; font-family:sans-serif; text-align:center;'><img src='/static/logo.jpg' style='height:80px; margin-bottom:15px;'><h2>TERCEIRO ADM ASSOCIADOS - BALANÇO DE CAIXA</h2><hr><br><p style='text-align:left;'><strong>Receita Operacional Bruta:</strong> " + formatarMoeda(receita) + "</p><p style='text-align:left;'><strong>Custo de Salários/Reflexos:</strong> " + formatarMoeda(totalBruto) + "</p><br><h3 style='text-align:left;'>Saldo Final de Caixa: " + formatarMoeda(receita - totalBruto) + "</h3></div>";
+        area.innerHTML = "<div style='padding:40px; font-family:sans-serif; text-align:center;'><div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif; margin-bottom:15px;'>📊TERADMAS📈</div><h2>TERCEIRO ADM ASSOCIADOS - BALANÇO DE CAIXA</h2><hr><br><p style='text-align:left;'><strong>Receita Operacional Bruta:</strong> " + formatarMoeda(receita) + "</p><p style='text-align:left;'><strong>Custo de Salários/Reflexos:</strong> " + formatarMoeda(totalBruto) + "</p><br><h3 style='text-align:left;'>Saldo Final de Caixa: " + formatarMoeda(receita - totalBruto) + "</h3></div>";
     }
     document.body.classList.add('imprimindo-balanco'); window.print();
     setTimeout(() => { document.body.classList.remove('imprimindo-balanco'); }, 1000);
@@ -291,8 +272,6 @@ function dispararRescisaoImediata(id, tipo) {
     if (confirm(msg + f.nome + "?")) { emitirRescisaoExecutiva(f, tipo); }
 }
 
-
-
 function abrirContracheque(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if (!f) return;
@@ -302,19 +281,14 @@ function abrirContracheque(id) {
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Holerite Oficial</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    
-    // LOGOTIPO ATUALIZADO COM OS SÍMBOLOS EXATOS
     html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
     html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
     html += "  <div style='text-align: left;'>";
     html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
     html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
-    html += "  </div>";
-    html += "</div>";
-    
+    html += "  </div></div>";
     html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>RECIBO DE PAGAMENTO MENSAL</h2><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p><p><strong>Mês de Referência:</strong> " + f.mes_ref + "</p></div>";
-    
     html += "<h4 class='section-title proventos-title'>PROVENTOS (CRÉDITOS)</h4><table class='table-holerite'>";
     html += "<tr><td>(+) Salário Base</td><td class='text-right'>" + formatarMoeda(f.salario) + "</td></tr>";
     if (f.total_he_ganho > 0) html += "<tr><td>(+) Horas Extras Acumuladas</td><td class='text-right'>" + formatarMoeda(f.total_he_ganho) + "</td></tr>";
@@ -322,12 +296,49 @@ function abrirContracheque(id) {
     if (f.adicional_noturno > 0) html += "<tr><td>(+) Adicional Noturno</td><td class='text-right'>" + formatarMoeda(f.adicional_noturno) + "</td></tr>";
     if (f.beneficios > 0) html += "<tr><td>(+) Auxílios/Benefícios</td><td class='text-right'>" + formatarMoeda(f.beneficios) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr></table>";
-
     html += "<h4 class='section-title descontos-title'>DESCONTOS (RETENÇÕES)</h4><table class='table-holerite'>";
     if (f.inss > 0) html += "<tr><td>(-) INSS Progressivo</td><td class='text-right'>" + formatarMoeda(f.inss) + "</td></tr>";
     if (f.irrf > 0) html += "<tr><td>(-) Imposto de Renda (IRRF)</td><td class='text-right'>" + formatarMoeda(f.irrf) + "</td></tr>";
     if (f.vt > 0) html += "<tr><td>(-) Vale Transporte (6%)</td><td class='text-right'>" + formatarMoeda(f.vt) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(f.total_descontos) + "</td></tr></table>";
+    html += "<div class='liquido-box'><span class='liquido-label'>VALOR LÍQUIDO A RECEBER:</span><span class='liquido-value'>" + formatarMoeda(f.liquido) + "</span></div>";
+    html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura do Colaborador</p></div></div></body></html>";
+    janela.document.write(html); janela.document.close();
+}
+
+
+
+
+    html += "<h4 class='section-title proventos-title'>PROVENTOS (CRÉDITOS)</h4><table class='table-holerite'>";
+    html += "<tr><td>(+) Salário Base</td><td class='text-right'>" + formatarMoeda(f.salario) + "</td></tr>";
+    if (f.total_he_ganho > 0) {
+        html += "<tr><td>(+) Horas Extras Acumuladas</td><td class='text-right'>" + formatarMoeda(f.total_he_ganho) + "</td></tr>";
+    }
+    if (f.insalubridade > 0) {
+        html += "<tr><td>(+) Adicional Insalubridade</td><td class='text-right'>" + formatarMoeda(f.insalubridade) + "</td></tr>";
+    }
+    if (f.adicional_noturno > 0) {
+        html += "<tr><td>(+) Adicional Noturno</td><td class='text-right'>" + formatarMoeda(f.adicional_noturno) + "</td></tr>";
+    }
+    if (f.beneficios > 0) {
+        html += "<tr><td>(+) Auxílios/Benefícios</td><td class='text-right'>" + formatarMoeda(f.beneficios) + "</td></tr>";
+    }
+    html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr></table>";
+
+    html += "<h4 class='section-title descontos-title'>DESCONTOS (RETENÇÕES)</h4><table class='table-holerite'>";
+    if (f.inss > 0) {
+        html += "<tr><td>(-) INSS Progressivo</td><td class='text-right'>" + formatarMoeda(f.inss) + "</td></tr>";
+    }
+    if (f.irrf > 0) {
+        html += "<tr><td>(-) Imposto de Renda (IRRF)</td><td class='text-right'>" + formatarMoeda(f.irrf) + "</td></tr>";
+    }
+    if (f.vt > 0) {
+        html += "<tr><td>(-) Vale Transporte (6%)</td><td class='text-right'>" + formatarMoeda(f.vt) + "</td></tr>";
+    }
+    html += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(f.total_descontos) + "</td></tr></table>";
+
+
+
 
     html += "<div class='liquido-box'><span class='liquido-label'>VALOR LÍQUIDO A RECEBER:</span><span class='liquido-value'>" + formatarMoeda(f.liquido) + "</span></div>";
     html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura do Colaborador</p></div></div></body></html>";
@@ -346,20 +357,18 @@ function abrirFerias(id) {
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Recibo de Férias</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    
-    // LOGOTIPO ATUALIZADO COM OS SÍMBOLOS EXATOS
     html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
     html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
     html += "  <div style='text-align: left;'>";
     html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
     html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
-    html += "  </div>";
-    html += "</div>";
-    
+    html += "  </div></div>";
     html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p></div>";
-    
-    html += "<h4 class='section-title proventos-title'>VERBAS REFEITAS (CRÉDITOS)</h4><table class='table-holerite'>";
+
+
+
+        html += "<h4 class='section-title proventos-title'>VERBAS REFEITAS (CRÉDITOS)</h4><table class='table-holerite'>";
     html += "<tr><td>(+) Valor Bruto das Férias (30 dias)</td><td class='text-right'>" + formatarMoeda(base) + "</td></tr>";
     html += "<tr><td>(+) Terço Constitucional de Férias (1/3)</td><td class='text-right'>" + formatarMoeda(terco) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalBruto) + "</td></tr></table>";
@@ -373,34 +382,32 @@ function abrirFerias(id) {
     janela.document.write(html); janela.document.close();
 }
 
-
-
-
-
 async function emitirRescisaoExecutiva(f, tipo) {
     let liq = f.salario * 1.4;
     let proventos = f.salario * 1.5;
     let descontos = f.salario * 0.1;
     try {
-        const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
+        const resposta = await fetch('/api/rescisao', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo })
+        });
         const r = await resposta.json(); 
         liq = r.liquido; proventos = r.totalProventos; descontos = proventos - liq;
     } catch(e) {}
-    
-    const janela = window.open('', '_blank', 'width=800,height=900');
+
+
+
+        const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Rescisão Contratual</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    
-    // LOGOTIPO ATUALIZADO COM OS SÍMBOLOS EXATOS
     html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
     html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
     html += "  <div style='text-align: left;'>";
     html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
     html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
-    html += "  </div>";
-    html += "</div>";
-    
+    html += "  </div></div>";
     html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>TERMO DE RESCISÃO CONTRATUAL</h2><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa do Afastamento:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p></div>";
     
@@ -422,22 +429,22 @@ function abrirDecimoTerceiroGeral() {
     let totalProventos = 0; 
     funcionarios.forEach(f => { totalProventos += f.salario; });
     let totalDescontos = totalProventos * 0.09;
-    
-    const janela = window.open('', '_blank', 'width=800,height=900');
+
+
+
+
+        const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Folha de 13º</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    
-    // LOGOTIPO ATUALIZADO COM OS SÍMBOLOS EXATOS
     html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
-    html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
+    html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>建立TERADMAS📈</div>";
     html += "  <div style='text-align: left;'>";
     html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
     html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
-    html += "  </div>";
-    html += "</div>";
-    
+    html += "  </div></div>";
     html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><hr>";
+    
     html += "<h4 class='section-title proventos-title'>CRÉDITOS DA FOLHA INTEGRAL</h4><table class='table-holerite'>";
     html += "<tr><td>(+) Valor Bruto Global Prorrogado</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr></table>";
@@ -456,6 +463,8 @@ async function deletarFuncionario(id) {
     try { await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' }); } catch(e) {}
     await carregarDadosBanco();
 }
+
+
 
 function obterEstiloHolerite() {
     return `
@@ -477,19 +486,3 @@ function obterEstiloHolerite() {
 
 
 
-function obterLogoBase64() {
-    // Código Base64 oficial limpo que gera o ícone azul/verde e o texto idêntico à sua logo real
-    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNTAgODAiPjxyZWN0IHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgeD0iMTUiIHk9IjE4IiBmaWxsPSIjMWUzYThhIiByeD0iNiIvPjxwYXRoIGQ9Ik0yOCAyOCBMMzggMzggTDI4IDQ4IFoiIGZpbGw9IiMxNmEzNGEiLz48dGV4dCB4PSI3NSIgeT0iNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTNhOGEiPlRFUkNFSVJPIEFETTwvdGV4dD4=";
-}
-
-// Função complementar para emendar a string da logo sem estourar o limite de caracteres
-function obterLogoBase64Cont() {
-    return "dGV4dCB4PSI3NSIgeT0iNjAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMyIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzY0NzQ4YiI+QVNTT0NJQURPUzwvdGV4dD48L3N2Zz4=";
-}
-
-// Substitua a função antiga por esta versão definitiva unificada
-function obterLogoBase64() {
-    const p1 = "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNTAgODAiPjxyZWN0IHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgeD0iMTUiIHk9IjE4IiBmaWxsPSIjMWUzYThhIiByeD0iNiIvPjxwYXRoIGQ9Ik0yOCAyOCBMMzggMzggTDI4IDQ4IFoiIGZpbGw9IiMxNmEzNGEiLz48dGV4dCB4PSI3NSIgeT0iNDIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTNhOGEiPlRFUkNFSVJPIEFETTwvdGV4dD4=";
-    const p2 = "PHRleHQgeD0iNzUiIHk9IjYwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiM2NDc0OGIiPkFTU09DSUFET1M8L3RleHQ+PC9zdmc+";
-    return "data:image/svg+xml;base64," + p1 + p2;
-}
