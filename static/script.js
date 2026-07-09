@@ -283,7 +283,7 @@ function abrirContracheque(id) {
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Holerite Oficial</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' alt='Logo TAASS' style='height:75px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE PAGAMENTO MENSAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE PAGAMENTO MENSAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p><p><strong>Mês de Referência:</strong> " + f.mes_ref + "</p></div>";
     
     html += "<h4 class='section-title proventos-title'>PROVENTOS (CRÉDITOS)</h4><table class='table-holerite'>";
@@ -312,13 +312,13 @@ function abrirFerias(id) {
     const base = f.salario + (f.insalubridade || 0);
     const terco = base / 3;
     const totalBruto = base + terco;
-    const totalDescontos = totalBruto * 0.09; // Simulação de retenção padrão
+    const totalDescontos = totalBruto * 0.09;
     
     const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Recibo de Férias</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' alt='Logo TAASS' style='height:75px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE AVISO E GOZO DE FÉRIAS</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p></div>";
     
     html += "<h4 class='section-title proventos-title'>VERBAS REFEITAS (CRÉDITOS)</h4><table class='table-holerite'>";
@@ -347,16 +347,14 @@ async function emitirRescisaoExecutiva(f, tipo) {
     try {
         const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
         const r = await resposta.json(); 
-        liq = r.liquido;
-        proventos = r.totalProventos;
-        descontos = proventos - liq;
+        liq = r.liquido; proventos = r.totalProventos; descontos = proventos - liq;
     } catch(e) {}
     
     const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Rescisão Contratual</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:75px; margin-bottom:10px;'><h2 style='margin:0;'>TERMO DE RESCISÃO CONTRATUAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>TERMO DE RESCISÃO CONTRATUAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa do Afastamento:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p></div>";
     
     html += "<h4 class='section-title proventos-title'>VERBAS RESCISÓRIAS (CRÉDITOS)</h4><table class='table-holerite'>";
@@ -383,8 +381,7 @@ function abrirDecimoTerceiroGeral() {
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Folha de 13º</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:75px; margin-bottom:10px;'><h2 style='margin:0;'>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
-    
+    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
     html += "<h4 class='section-title proventos-title'>CRÉDITOS DA FOLHA INTEGRAL</h4><table class='table-holerite'>";
     html += "<tr><td>(+) Valor Bruto Global Prorrogado</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr></table>";
@@ -423,6 +420,5 @@ function obterEstiloHolerite() {
 }
 
 function obterLogoBase64() {
-    // Vetor gráfico embutido em Base64 - Gera uma logo de empresa geométrica corporativa que nunca quebra
-    return "data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 300 80'><rect width='45' height='45' x='10' y='15' fill='%231e3a8a' rx='5'/><path d='M25 25 L40 40 L25 50 Z' fill='%2316a34a'/><text x='70' y='40' font-family='Arial' font-size='18' font-weight='bold' fill='%231e3a8a'>TERCEIRO ADM</text><text x='70' y='58' font-family='Arial' font-size='12' font-weight='600' fill='%2364748b'>ASSOCIADOS</text></svg>";
+    return "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgODAiPjxyZWN0IHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSIgeD0iMTAiIHk9IjE1IiBmaWxsPSIjMWUzYThhIiByeD0iNSIvPjxwYXRoIGQ9Ik0yNSAyNSBMMzUgMzUgTDI1IDQ1IFoiIGZpbGw9IiMxNmEzNGEiLz48dGV4dCB4PSI3MCIgeT0iNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiMxZTNhOGEiPlRFUkNFSVJPIEFETTwvdGV4dD48dGV4dCB4PSI3MCIgeT0iNTgiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzY0NzQ4YiI+QVNTT0NJQURPUzwvdGV4dD48L3N2Zz4=";
 }
