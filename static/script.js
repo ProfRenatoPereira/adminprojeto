@@ -297,13 +297,22 @@ function abrirContracheque(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if (!f) return;
     
-    const urlLogo = obterLogoBase64();
     const proventos = f.salario + (f.total_he_ganho || 0) + (f.insalubridade || 0) + (f.adicional_noturno || 0) + (f.beneficios || 0) + (f.salario_familia || 0);
     const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Holerite Oficial</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
-    html += "<div class='header-holerite'><img src='" + urlLogo + "' style='height:80px; margin-bottom:10px;'><h2 style='margin:0;'>RECIBO DE PAGAMENTO MENSAL</h2><h3>TERCEIRO ADM ASSOCIADOS</h3></div><hr>";
+    
+    // LOGOTIPO CORPORATIVO CONSTRUÍDO EM HTML E CSS PUROS (À PROVA DE FALHAS E SEM IMAGENS)
+    html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
+    html += "  <div style='width: 45px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.5rem;'>TA</div>";
+    html += "  <div style='text-align: left;'>";
+    html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
+    html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
+    html += "  </div>";
+    html += "</div>";
+    
+    html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>RECIBO DE PAGAMENTO MENSAL</h2><hr>";
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p><p><strong>Mês de Referência:</strong> " + f.mes_ref + "</p></div>";
     
     html += "<h4 class='section-title proventos-title'>PROVENTOS (CRÉDITOS)</h4><table class='table-holerite'>";
@@ -314,7 +323,7 @@ function abrirContracheque(id) {
     if (f.beneficios > 0) html += "<tr><td>(+) Auxílios/Benefícios</td><td class='text-right'>" + formatarMoeda(f.beneficios) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr></table>";
 
-    html += "<h4 class='section-title descontos-title'>DESCONTOS (RETENÇÕES)</h4><table class='table-holerite'>";
+       html += "<h4 class='section-title descontos-title'>DESCONTOS (RETENÇÕES)</h4><table class='table-holerite'>";
     if (f.inss > 0) html += "<tr><td>(-) INSS Progressivo</td><td class='text-right'>" + formatarMoeda(f.inss) + "</td></tr>";
     if (f.irrf > 0) html += "<tr><td>(-) Imposto de Renda (IRRF)</td><td class='text-right'>" + formatarMoeda(f.irrf) + "</td></tr>";
     if (f.vt > 0) html += "<tr><td>(-) Vale Transporte (6%)</td><td class='text-right'>" + formatarMoeda(f.vt) + "</td></tr>";
