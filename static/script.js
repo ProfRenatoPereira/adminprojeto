@@ -426,33 +426,25 @@ async function emitirRescisaoExecutiva(f, tipo) {
 
 function abrirDecimoTerceiroGeral() {
     if (funcionarios.length === 0) { alert("Nenhum funcionário ativo."); return; }
-    let totalProventos = 0; 
-    funcionarios.forEach(f => { totalProventos += f.salario; });
+    let totalProventos = 0; funcionarios.forEach(f => { totalProventos += f.salario; });
     let totalDescontos = totalProventos * 0.09;
-
-
-
-
-        const janela = window.open('', '_blank', 'width=800,height=900');
+    const janela = window.open('', '_blank', 'width=800,height=900');
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Folha de 13º</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
     html += "<div class='header-holerite' style='display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;'>";
-    html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>建立TERADMAS📈</div>";
+    html += "  <div style='padding: 0 10px; height: 45px; background: #1e3a8a; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem; font-family: Arial, sans-serif;'>📊TERADMAS📈</div>";
     html += "  <div style='text-align: left;'>";
     html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
     html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
     html += "  </div></div>";
     html += "<h2 style='text-align:center; font-size:1.2rem; margin: 15px 0 5px 0;'>FOLHA DE DÉCIMO TERCEIRO SALÁRIO INTEGRAL</h2><hr>";
-    
     html += "<h4 class='section-title proventos-title'>CRÉDITOS DA FOLHA INTEGRAL</h4><table class='table-holerite'>";
     html += "<tr><td>(+) Valor Bruto Global Prorrogado</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr></table>";
-
     html += "<h4 class='section-title descontos-title'>RETENÇÕES COMPENSATÓRIAS</h4><table class='table-holerite'>";
     html += "<tr><td>(-) Descontos Previdenciários Globais</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL DESCONTOS:</td><td class='text-right'>" + formatarMoeda(totalDescontos) + "</td></tr></table>";
-
     html += "<div class='liquido-box'><span class='liquido-label'>TOTAL LÍQUIDO GERAL A PAGAR:</span><span class='liquido-value'>" + formatarMoeda(totalProventos - totalDescontos) + "</span></div>";
     html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura de Fechamento de Exercício</p></div></div></body></html>";
     janela.document.write(html); janela.document.close();
@@ -463,8 +455,6 @@ async function deletarFuncionario(id) {
     try { await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' }); } catch(e) {}
     await carregarDadosBanco();
 }
-
-
 
 function obterEstiloHolerite() {
     return `
