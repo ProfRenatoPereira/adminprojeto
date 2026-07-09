@@ -311,7 +311,7 @@ function abrirContracheque(id) {
     html += "  <div style='text-align: left;'>";
     html += "    <h2 style='margin: 0; font-size: 1.3rem; letter-spacing: 1px; color: #1e3a8a; font-family: Arial, sans-serif;'>TERCEIRO ADM</h2>";
     html += "    <h3 style='margin: 2px 0 0 0; font-size: 0.9rem; color: #64748b; font-family: Arial, sans-serif; font-weight: 600;'>ASSOCIADOS</h3>";
-@@ -323,7 +323,7 @@
+
     if (f.beneficios > 0) html += "<tr><td>(+) Auxílios/Benefícios</td><td class='text-right'>" + formatarMoeda(f.beneficios) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(proventos) + "</td></tr></table>";
 
@@ -320,7 +320,7 @@ function abrirContracheque(id) {
     if (f.inss > 0) html += "<tr><td>(-) INSS Progressivo</td><td class='text-right'>" + formatarMoeda(f.inss) + "</td></tr>";
     if (f.irrf > 0) html += "<tr><td>(-) Imposto de Renda (IRRF)</td><td class='text-right'>" + formatarMoeda(f.irrf) + "</td></tr>";
     if (f.vt > 0) html += "<tr><td>(-) Vale Transporte (6%)</td><td class='text-right'>" + formatarMoeda(f.vt) + "</td></tr>";
-@@ -337,7 +337,6 @@
+
 function abrirFerias(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if (!f) return;
@@ -328,7 +328,7 @@ function abrirFerias(id) {
     const base = f.salario + (f.insalubridade || 0);
     const terco = base / 3;
     const totalBruto = base + terco;
-@@ -347,7 +346,17 @@
+
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Recibo de Férias</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
@@ -347,7 +347,7 @@ function abrirFerias(id) {
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + " | <strong>Cargo:</strong> " + f.cargo + "</p></div>";
 
     html += "<h4 class='section-title proventos-title'>VERBAS REFEITAS (CRÉDITOS)</h4><table class='table-holerite'>";
-@@ -372,7 +381,6 @@
+
     let liq = f.salario * 1.4;
     let proventos = f.salario * 1.5;
     let descontos = f.salario * 0.1;
@@ -355,7 +355,7 @@ function abrirFerias(id) {
     try {
         const resposta = await fetch('/api/rescisao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ salario: f.salario, admissao: f.data_admissao, tipoRescisao: tipo }) });
         const r = await resposta.json(); 
-@@ -383,7 +391,17 @@
+
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Rescisão Contratual</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
@@ -374,7 +374,7 @@ function abrirFerias(id) {
     html += "<div class='info-colaborador'><p><strong>Colaborador:</strong> " + f.nome + "</p><p><strong>Causa do Afastamento:</strong> " + (tipo === 'pedido_demissao' ? 'Pedido de Demissão' : 'Dispensa sem Justa Causa') + "</p></div>";
 
     html += "<h4 class='section-title proventos-title'>VERBAS RESCISÓRIAS (CRÉDITOS)</h4><table class='table-holerite'>";
-@@ -401,7 +419,6 @@
+
 
 function abrirDecimoTerceiroGeral() {
     if (funcionarios.length === 0) { alert("Nenhum funcionário ativo."); return; }
@@ -382,7 +382,7 @@ function abrirDecimoTerceiroGeral() {
     let totalProventos = 0; 
     funcionarios.forEach(f => { totalProventos += f.salario; });
     let totalDescontos = totalProventos * 0.09;
-@@ -410,7 +427,17 @@
+
     if (!janela) { alert("Pop-up bloqueado!"); return; }
 
     let html = "<html><head><title>Folha de 13º</title><style>" + obterEstiloHolerite() + "</style></head><body><div class='holerite-box'>";
@@ -401,7 +401,7 @@ function abrirDecimoTerceiroGeral() {
     html += "<h4 class='section-title proventos-title'>CRÉDITOS DA FOLHA INTEGRAL</h4><table class='table-holerite'>";
     html += "<tr><td>(+) Valor Bruto Global Prorrogado</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr>";
     html += "<tr class='row-total'><td>TOTAL PROVENTOS:</td><td class='text-right'>" + formatarMoeda(totalProventos) + "</td></tr></table>";
-@@ -448,19 +475,21 @@
+
     `;
 }
 
