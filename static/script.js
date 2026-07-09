@@ -343,7 +343,8 @@ function abrirContracheque(id) {
     html += "<div class='liquido-box'><span class='liquido-label'>VALOR LÍQUIDO A RECEBER:</span><span class='liquido-value'>" + formatarMoeda(f.liquido) + "</span></div>";
     html += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Assinatura do Colaborador</p></div></div></body></html>";
     janela.document.write(html); janela.document.close();
-}
+
+
 
 function abrirFerias(id) {
     const f = funcionarios.find(emp => emp.id === id);
