@@ -19,6 +19,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('limite_func')?.addEventListener('change', actualizarDashboard);
 });
 
+
+
 async function carregarCargosBanco() {
     try {
         const resposta = await fetch('/api/cargos');
@@ -127,6 +129,8 @@ async function adicionarFuncionario() {
     } catch(e) { console.error("Erro ao enviar funcionário para API"); }
 }
 
+
+
 function limparCamposTela() {
     if (document.getElementById('func_id_edicao')) document.getElementById('func_id_edicao').value = '';
     if (document.getElementById('nome')) document.getElementById('nome').value = '';
@@ -221,7 +225,17 @@ function renderizarGraficosNativos(liquido, descontos) {
             containerPareto.innerHTML += '<div class="bar-wrapper"><div class="bar-native" style="height: ' + pct + '%">' + pct.toFixed(0) + '%</div><div class="bar-label">' + c + '</div></div>';
         });
     }
+    const containerLinear = document.getElementById('nativeLinear');
+    if (containerLinear) {
+        containerLinear.innerHTML = '';
+        const maxBruto = funcionarios.length > 0 ? Math.max(...funcionarios.map(f => f.salario)) : 1;
+        funcionarios.slice(-4).forEach(f => {
+            const pct = maxBruto > 0 ? (f.salario / maxBruto) * 100 : 0;
+            containerLinear.innerHTML += '<div class="linear-row"><div class="linear-name">' + f.nome + '</div><div class="linear-bar-bg"><div class="linear-bar-fill" style="width: ' + pct + '%"></div></div><div class="linear-value" style="color:#1e3a8a">' + formatarMoeda(f.salario) + '</div></div>';
+        });
+    }
 }
+
 
 function renderizarTabela() {
     const corpo = document.getElementById('tabela_corpo');
@@ -233,19 +247,15 @@ function renderizarTabela() {
         const jTexto = f.banco_horas > 0 ? f.horas_comp + 'h (+' + f.banco_horas + 'h BH)' : f.horas_comp + 'h';
         const deptoRotulo = f.departamento ? f.departamento : 'Administrativo';
         
-        const args = [
-            f.id, JSON.stringify(f.nome), JSON.stringify(f.cargo), f.salario, f.horas_comp, 
-            JSON.stringify(f.regime_he), f.insalubridade, f.beneficios, f.qtd_filhos, 
-            JSON.stringify(f.observacoes), JSON.stringify(f.data_admissao), JSON.stringify(f.turno), 
-            JSON.stringify(f.hora_entrada), JSON.stringify(deptoRotulo)
-        ].join(',');
-
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td><a onclick="carregarFuncionarioParaEdicao(' + args + ')" style="cursor:pointer; color:var(--primary); text-decoration:underline;"><strong>' + f.nome + '</strong></a><br><small>Admissão: ' + dataFormatada + '</small></td><td>' + f.cargo + '<br><small style="color:#64748b">Dep: ' + deptoRotulo + '</small></td><td><small>Jornada: ' + jTexto + '</small><br><strong>' + turnoRotulo + '</strong></td><td style="color:#16a34a"><strong>' + formatarMoeda(f.liquido) + '</strong></td><td class="actions-cell"><a onclick="abrirContracheque(' + f.id + ')" class="btn-link">📄 Mensal</a><a onclick="abrirFerias(' + f.id + ')" class="btn-link" style="color:#16a34a">🌴 Férias</a><button class="btn-delete" style="background:#dc2626; color:white; border:none; padding:4px 6px; margin-right:4px; font-size:0.7rem;" onclick="dispararRescisaoImediata(' + f.id + ', \'demissao_sem_justa\')">⚠️ Sem Justa</button><button class="btn-delete" style="background:#f97316; color:white; border:none; padding:4px 6px; margin-right:4px; font-size:0.7rem;" onclick="dispararRescisaoImediata(' + f.id + ', \'pedido_demissao\')">🚪 Pedido</button><button class="btn-delete" style="padding:4px 6px; font-size:0.7rem;" onclick="deletarFuncionario(' + f.id + ')">Demitir</button></td>';
+        tr.innerHTML = '<td><a id="lnk_' + f.id + '" style="cursor:pointer; color:var(--primary); text-decoration:underline;"><strong>' + f.nome + '</strong></a><br><small>Admissão: ' + dataFormatada + '</small></td><td>' + f.cargo + '<br><small style="color:#64748b">Dep: ' + deptoRotulo + '</small></td><td><small>Jornada: ' + jTexto + '</small><br><strong>' + turnoRotulo + '</strong></td><td style="color:#16a34a"><strong>' + formatarMoeda(f.liquido) + '</strong></td><td class="actions-cell"><a onclick="abrirContracheque(' + f.id + ')" class="btn-link">📄 Mensal</a><a onclick="abrirFerias(' + f.id + ')" class="btn-link" style="color:#16a34a">🌴 Férias</a><button class="btn-delete" style="background:#dc2626; color:white; border:none; padding:4px 6px; margin-right:4px; font-size:0.7rem;" onclick="dispararRescisaoImediata(' + f.id + ', \'demissao_sem_justa\')">⚠️ Sem Justa</button><button class="btn-delete" style="background:#f97316; color:white; border:none; padding:4px 6px; margin-right:4px; font-size:0.7rem;" onclick="dispararRescisaoImediata(' + f.id + ', \'pedido_demissao\')">🚪 Pedido</button><button class="btn-delete" style="padding:4px 6px; font-size:0.7rem;" onclick="deletarFuncionario(' + f.id + ')">Demitir</button></td>';
         corpo.appendChild(tr);
+
+        document.getElementById('lnk_' + f.id)?.addEventListener('click', () => {
+            carregarFuncionarioParaEdicao(f.id, f.nome, f.cargo, f.salario, f.horas_comp, f.regime_he, f.insalubridade, f.beneficios, f.qtd_filhos, f.observacoes, f.data_admissao, f.turno, f.hora_entrada, deptoRotulo);
+        });
     });
 }
-
 
 function imprimirBalanco() {
     const receita = parseFloat(document.getElementById('receita_empresa')?.value) || 0;
@@ -264,6 +274,7 @@ function dispararRescisaoImediata(id, tipo) {
     const msg = tipo === 'demissao_sem_justa' ? 'Calcular DISPENSA SEM JUSTA CAUSA de ' : 'Calcular PEDIDO DE DEMISSÃO de ';
     if (confirm(msg + f.nome + "?")) { emitirRescisaoExecutiva(f, tipo); }
 }
+
 
 function abrirContracheque(id) {
     const f = funcionarios.find(emp => emp.id === id);
@@ -298,7 +309,6 @@ function abrirContracheque(id) {
     janela.document.write(html); janela.document.close();
 }
 
-
 function abrirFerias(id) {
     const f = funcionarios.find(emp => emp.id === id);
     if (!f) return;
@@ -330,6 +340,9 @@ function abrirFerias(id) {
     janela.document.write(html); janela.document.close();
 }
 
+
+
+
 async function emitirRescisaoExecutiva(f, tipo) {
     let liq = f.salario * 1.4; let proventos = f.salario * 1.5; let descontos = f.salario * 0.1;
     try {
@@ -358,8 +371,6 @@ async function emitirRescisaoExecutiva(f, tipo) {
     htmlRescisao += "<div class='assinatura-container'><div class='linha-assinatura'></div><p>Quitação do Contrato de Trabalho</p></div></div></body></html>";
     janela.document.write(htmlRescisao); janela.document.close();
 }
-
-
 
 function abrirDecimoTerceiroGeral() {
     if (funcionarios.length === 0) { alert("Nenhum funcionário ativo."); return; }
@@ -410,3 +421,4 @@ function obterEstiloHolerite() {
         .assinatura-container { margin-top: 60px; text-align: center; } .linha-assinatura { width: 60%; border-bottom: 1px solid #000; margin: 0 auto 8px auto; }
     `;
 }
+
